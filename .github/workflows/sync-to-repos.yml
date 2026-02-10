@@ -1,16 +1,13 @@
 name: Sync docs to component READMEs
-
 on:
   push:
     paths:
       - basic.md
       - components/**.md
   workflow_dispatch:
-
 jobs:
   sync:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
         include:
@@ -22,26 +19,21 @@ jobs:
             component: monitoring-server
           - repo: drone-platform-trans-tester
             component: trans-tester
-
     steps:
       - name: Checkout docs repo
         uses: actions/checkout@v3
-
       - name: Build README
         run: |
-          echo "" > README.md
-          cat BASE_README.md >> README.md
           echo "" >> README.md
           cat components/${{ matrix.component }}.md >> README.md
-
+          echo "" > README.md
+          cat BASE_README.md >> README.md
       - name: Clone target repo
         run: |
           git clone https://x-access-token:${{ secrets.DOCS_PUSH_TOKEN }}@github.com/seyun4047/${{ matrix.repo }}.git target
-
       - name: Copy README
         run: |
           cp README.md target/README.md
-
       - name: Commit and push
         run: |
           cd target
