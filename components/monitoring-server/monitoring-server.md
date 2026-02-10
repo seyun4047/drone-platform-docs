@@ -10,10 +10,25 @@ Its primary role is to detect abnormal drones, including:
 - Drones that are not responding to heartbeat or status updates
 
 By identifying and handling these cases,
-the monitoring server helps prevent server overload
-and maintains the overall stability of the Drone Platform.
+<br>the monitoring server helps prevent server overload and maintains the overall stability of the Drone Platform.
 
 ---
+
+## Usage
+```bash
+# Load Environment Variables
+set -a
+source dev.env
+set +a
+```
+```bash
+# Build
+./gradlew build
+```
+```bash
+# Run
+./gradlew bootRun
+```
 
 ## Monitoring Flow
 The monitoring process follows the flow below: 
