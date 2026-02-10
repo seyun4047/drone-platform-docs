@@ -16,10 +16,10 @@
 |Enter the authorized drone serial and device name, then connect.|Select the regions on the screen to monitor the desired information.|When data is detected, it is processed and sent to the main server.|
 
 ### SEND DATA
-| DETECT PERSON | SEND EVENT DATA |
+| DETECT HUMAN | SEND EVENT DATA |
 |:---:|:---:|
 |<img src="https://github.com/user-attachments/assets/2c66ff16-f5ff-43eb-b082-97bfa7bc7d7c" width="300">|<img width="300" alt="스크린샷 2026-02-08 22 53 30" src="https://github.com/user-attachments/assets/b4f43752-97c3-4c60-ae6d-424b73721697" />|
-|Automatically detect person.|Send event data to the server.<br>(The image represents event data received from the client by the server.)|
+|Automatically detect human.|Send event data to the server.<br>(The image represents event data received from the client by the server.)|
 
 | SEND TELEMETRY DATA |
 |:---:|
@@ -45,14 +45,14 @@ python3 main.py
 |------------------|---------------------------------|-------------|-------------------------------------|
 | Language         | Python                          | 3.x         | Core application logic              |
 | Numeric OCR      | Tesseract (pytesseract)         | 0.3.13      | Extract speed and telemetry numbers |
-| Person Detection | YOLOv8 (Ultralytics)            | 8.4.12      | Real-time person detection          |
+| Human Detection | YOLOv8 (Ultralytics)            | 8.4.12      | Real-time human detection          |
 | Computer Vision  | OpenCV                          | 4.12.0.88   | Image processing                    |
 | GUI              | PyQt5                           | 5.15.11     | Desktop interface                   |
 | Deep Learning    | PyTorch (torch, torchvision)    | 2.10.0 / 0.25.0 | Model inference engine          |
 
 ---
 ## Event Handling
-When a person is detected in the video feed, an event is generated.
+When a human is detected in the video feed, an event is generated.
 The event data is transmitted to the server.
 Both the server and the client can monitor these events in real time.
 
