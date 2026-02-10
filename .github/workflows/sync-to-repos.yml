@@ -25,12 +25,12 @@ jobs:
       - name: Build README
         run: |
           echo "" >> README.md
-          cat components/${{ matrix.component }}.md >> README.md
+          cat components/${{ matrix.component }}/${{ matrix.component }}.md >> README.md
           echo "" > README.md
           cat overview.md >> README.md
       - name: Clone target repo
         run: |
-          git clone https://x-access-token:${{ secrets.DOCS_PUSH_TOKEN }}@github.com/seyun4047/${{ matrix.repo }}/${{ matrix.repo }}.git target
+          git clone https://x-access-token:${{ secrets.DOCS_PUSH_TOKEN }}@github.com/seyun4047/${{ matrix.repo }}.git target
       - name: Copy README
         run: |
           cp README.md target/README.md
