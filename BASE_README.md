@@ -1,4 +1,4 @@
-# Part of: Manufacturer-Independent Drone Platform
+# Manufacturer-Independent Drone Platform
 
 The project aims to be a **manufacturer-independent drone platform**, connecting various drone devices with standardized interfaces and performing **Redis-based authentication and status management**.
 
