@@ -30,7 +30,7 @@ jobs:
           cat overview.md >> README.md
       - name: Clone target repo
         run: |
-          git clone https://x-access-token:${{ secrets.DOCS_PUSH_TOKEN }}@github.com/seyun4047/${{ matrix.repo }}.git target
+          git clone https://x-access-token:${{ secrets.DOCS_PUSH_TOKEN }}@github.com/seyun4047/${{ matrix.repo }}/${{ matrix.repo }}.git target
       - name: Copy README
         run: |
           cp README.md target/README.md
