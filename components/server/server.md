@@ -1,5 +1,9 @@
 # Drone Platform Server
 ---
+
+### [KOREAN GUIDE](https://github.com/seyun4047/drone-platform-docs/blob/main/components/server/server.md)
+
+---
 ## Overview
 The Drone Platform Server is the core backend service of the Manufacturer-Independent Drone Platform.<br>
 

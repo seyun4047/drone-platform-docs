@@ -1,4 +1,9 @@
 # Drone Data Transmission & Multi-ROI Detection Client
+---
+
+### [KOREAN GUIDE](https://github.com/seyun4047/drone-platform-docs/blob/main/components/client/client.kr.md)
+
+---
 
 ## Repository Overview
 - This client application collects telemetry data from a drone and transmits it to a central server in real time.
