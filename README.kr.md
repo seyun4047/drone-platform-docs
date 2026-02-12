@@ -1,37 +1,73 @@
-해당 문서는 gemini-2.5-flash 로 자동 번역되었습니다.<br>정확한 내용은 여기서 확인해주세요: [English Document](https://github.com/seyun4047/drone-platform-trans-tester/blob/main/README.md)
+해당 문서는 gemini-2.5-flash 로 자동 번역되었습니다.<br>정확한 내용은 여기서 확인해주세요: [English Document](https://github.com/seyun4047/drone-platform-server/blob/main/README.md)
 
 ---
 
-# 드론 데이터 전송 테스터
+# 드론 플랫폼 서버
 
 ---
-## 저장소 개요
-이 저장소는 서버의 API 동작을 확인하기 위해 드론 연결, 텔레메트리 및 이벤트 데이터를 시뮬레이션하는 **드론 데이터 전송 테스터**를 제공합니다.
----
+## 개요
+드론 플랫폼 서버는 제조사 독립형 드론 플랫폼의 핵심 백엔드 서비스입니다.<br>
 
-## 작동 방식
+이 서버는 드론 세션의 전체 수명 주기 관리, 인증, <br>텔레메트리 처리, 그리고 플랫폼 전반에 걸친 대량 요청 처리를 담당합니다.<br>
 
-| Step | API Endpoint             | Description | Purpose | etc.      |
-|------|--------------------------|-------------|---------|-----------|
-| 1 | `/auth/connect`          | 드론 시리얼 및 장치 이름을 보냅니다. 승인되면 인증 토큰을 받습니다. | 드론과 서버 간의 유효한 세션 설정 |           |
-| 2 | `/api/telemetry`| 토큰과 함께 일반 텔레메트리 데이터(각도, 위치)를 보냅니다. | 주기적인 드론 상태 정보 전송 | (event=0) |
-| 3 | `/api/telemetry` | 이벤트 플래그 및 이벤트 상세 정보(예: 사람 감지)와 함께 텔레메트리를 보냅니다. | 중요한 감지 이벤트 보고 | (event=1) |
-| 4 | `/auth/update`           | 현재 토큰을 보내고 갱신된 토큰을 받습니다. | 유효한 인증 세션 유지 |           |
-| 5 | `/auth/disconnect`       | 토큰과 함께 연결 해제 요청을 보냅니다. | 연결을 깔끔하게 종료 |           |
+드론 플랫폼 서버는 드론, 데이터 저장 시스템 및 외부 서비스 간의 중앙 조정 계층 역할을 합니다.
 
 ---
 
-## 설치
-필요한 종속성을 설치합니다:
-```bash
-pip install -r requirements.txt
-```
+## 핵심 책임
+
+### 1. 드론 인증 및 세션 관리
+서버는 다음을 사용하여 안전하고 확장 가능한 드론 세션을 관리합니다.
+- 승인된 드론 데이터베이스 (MySQL)
+등록 및 승인된 드론 목록을 유지합니다.
+- 드론 인증 토큰 (Redis)
+인증된 드론에 대한 접근 토큰을 발행하고 유효성을 검사합니다.
+- 드론 심박수 추적 (Redis)
+시간 기반 심박수 데이터를 사용하여 실시간 연결 상태를 추적합니다.
+
+### 2. 텔레메트리 및 이벤트 처리
+서버는 [drone-client](https://github.com/seyun4047/drone-platform-client)에서 전송되는 텔레메트리 및 이벤트 데이터를 수신하고 처리합니다. 포함되는 내용은 다음과 같습니다.
+- 텔레메트리 데이터
+활성 드론의 실시간 운영 상태 데이터를 처리합니다.
+- 이벤트 데이터
+인간 감지 및 기타 임무 기반 활동과 같은 이벤트 데이터를 처리합니다.
+
 ---
+
 ## 사용법
-애플리케이션을 실행합니다:
+### 로컬 빌드
 ```bash
-python3 main.py
+# Export env
+export $(cat .env | xargs)
+
+# Build the project (Gradle)
+./gradlew build
+
+# Run locally with 'local' profile
+./gradlew bootRun --args='--spring.profiles.active=local'
 ```
+### Docker 빌드
+```bash
+# Build Images and Start (MySQL, Redis, App)
+docker compose up --build
+
+# Stop and remove containers
+docker compose down
+```
+---
+## 테스트
+### Mock 데이터로 흐름 테스트
+```bash
+# Test
+./gradlew test
+```
+### 실제 데이터로 흐름 테스트
+> 실제 드론 데이터로 테스트하려면 다음을 참조하세요: [드론 데이터 테스터](https://github.com/seyun4047/drone-platform-trans-tester)
+
+---
+## DB 가이드
+### MYSQL DB 사용 가이드
+> MySQL 사용 가이드에 대해 알고 싶다면 다음을 참조하세요: [DB 가이드](https://github.com/seyun4047/drone-platform-docs/blob/main/components/server/DB_GUIDE.md)
 ---
 
 ---
