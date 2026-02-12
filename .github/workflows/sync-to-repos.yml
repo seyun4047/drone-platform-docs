@@ -84,12 +84,12 @@ jobs:
               with open(en_path, "r", encoding="utf-8") as f:
                   en_content = f.read()
 
-              prompt = f"
+              prompt = f"""
               Translate the following Markdown documentation into Korean.
               Keep structure, links, and code blocks intact.
               Translate only descriptive text.
               {en_content}
-              "
+              """
 
               try:
                   response = client.models.generate_content(
