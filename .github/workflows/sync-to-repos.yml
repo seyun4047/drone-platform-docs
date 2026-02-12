@@ -1,43 +1,84 @@
 name: Sync docs to component READMEs
+
 on:
   push:
     paths:
-      - basic.md
       - components/**.md
   workflow_dispatch:
+
 jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      server: ${{ steps.filter.outputs.server }}
+      client: ${{ steps.filter.outputs.client }}
+      monitoring: ${{ steps.filter.outputs.monitoring }}
+      trans: ${{ steps.filter.outputs.trans }}
+      overview: ${{ steps.filter.outputs.overview }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Detect changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            server:
+              - 'components/server/server.md'
+            client:
+              - 'components/client/client.md'
+            monitoring:
+              - 'components/monitoring-server/monitoring-server.md'
+            trans:
+              - 'components/trans-tester/trans-tester.md'
+            overview:
+              - 'components/platform/overview.md'
+
   sync:
+    needs: detect
     runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
           - repo: drone-platform-server
             component: server
+            condition: ${{ needs.detect.outputs.server == 'true' || needs.detect.outputs.overview == 'true' }}
           - repo: drone-platform-client
             component: client
+            condition: ${{ needs.detect.outputs.client == 'true' || needs.detect.outputs.overview == 'true' }}
           - repo: drone-platform-monitoring-server
             component: monitoring-server
+            condition: ${{ needs.detect.outputs.monitoring == 'true' || needs.detect.outputs.overview == 'true' }}
           - repo: drone-platform-trans-tester
             component: trans-tester
+            condition: ${{ needs.detect.outputs.trans == 'true' || needs.detect.outputs.overview == 'true' }}
+
     steps:
-      - name: Checkout docs repo
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
+
+      - name: Skip if not needed
+        if: matrix.condition != 'true'
+        run: echo "Skipping ${{ matrix.repo }}" && exit 0
+
       - name: Build README
         run: |
           echo "" > README.md
           cat components/${{ matrix.component }}/${{ matrix.component }}.md >> README.md
           echo "" >> README.md
           cat components/platform/overview.md >> README.md
+
       - name: Clone target repo
         run: |
           git clone https://x-access-token:${{ secrets.DOCS_PUSH_TOKEN }}@github.com/seyun4047/${{ matrix.repo }}.git target
+
       - name: Copy README
         run: |
           cp README.md target/README.md
+
       - name: Commit and push
         run: |
           cd target
-          git config user.name "github-actions"
+          git config user.name "readme-bot"
           git config user.email "actions@github.com"
           git add README.md
           git commit -m "docs: sync README from drone-platform-docs" || echo "No changes"
