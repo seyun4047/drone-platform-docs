@@ -113,7 +113,7 @@ jobs:
                   original_en = f.read()
 
               if not original_en.startswith("Korean version:"):
-                  en_header = f"Korean version: [한국어 문서]({component_url}/{comp_kr_path)\n\n---\n\n"
+                  en_header = f"Korean version: [한국어 문서]({component_url}/{comp_kr_path})\n\n---\n\n"
                   with open(en_path, "w", encoding="utf-8") as f:
                       f.write(en_header + original_en)
 
