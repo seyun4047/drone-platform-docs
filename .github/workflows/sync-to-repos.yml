@@ -37,7 +37,7 @@ jobs:
     needs: detect
     runs-on: ubuntu-latest
     outputs:
-      commit_sha: ${{ steps.push.outputs.commit_sha }}  # ← sync가 참조할 SHA
+      commit_sha: ${{ steps.push.outputs.commit_sha }}
 
     steps:
       - uses: actions/checkout@v4
@@ -120,14 +120,13 @@ jobs:
           EOF
 
       - name: Commit translations
-        id: push  # ← id 추가
+        id: push
         run: |
           git config user.name "gemini-bot"
           git config user.email "actions@github.com"
           git add components/**/*.md
           git commit -m "docs: auto translate" || echo "No changes"
           git push
-          # ★ 핵심: push 완료 후 현재 HEAD SHA를 output으로 저장
           echo "commit_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
 
   sync:
@@ -151,7 +150,6 @@ jobs:
             output_key: trans
 
     steps:
-      # ★ 핵심: translate job이 push한 커밋 SHA를 명시적으로 checkout
       - uses: actions/checkout@v4
         with:
           ref: ${{ needs.translate.outputs.commit_sha }}
@@ -167,24 +165,24 @@ jobs:
           COMP=${{ matrix.component }}
           BASE_URL="https://github.com/seyun4047/${{ matrix.repo }}/blob/main"
 
-          echo "Korean version: [한국어 문서]($BASE_URL/README.kr.md)" > README.md
-          echo -e "\n---\n" >> README.md
+          echo "Korean version: [한국어 문서]($BASE_URL/README.kr.md)" > /.github/tmp/README.md
+          echo -e "\n---\n" >> /.github/tmp/README.md
           if [ -f components/$COMP/$COMP.md ]; then
-            cat components/$COMP/$COMP.md >> README.md
+            cat components/$COMP/$COMP.md >> /.github/tmp/README.md
           fi
-          echo -e "\n\n---\n" >> README.md
+          echo -e "\n\n---\n" >> /.github/tmp/README.md
           if [ -f components/platform/overview.md ]; then
-            cat components/platform/overview.md >> README.md
+            cat components/platform/overview.md >> /.github/tmp/README.md
           fi
 
-          echo "해당 문서는 gemini-2.5-flash 로 자동 번역되었습니다.<br>정확한 내용은 여기서 확인해주세요: [English Document]($BASE_URL/README.md)" > README.kr.md
-          echo -e "\n---\n" >> README.kr.md
+          echo "해당 문서는 gemini-2.5-flash 로 자동 번역되었습니다.<br>정확한 내용은 여기서 확인해주세요: [English Document]($BASE_URL/README.md)" > /.github/tmp/README.kr.md
+          echo -e "\n---\n" >> /.github/tmp/README.kr.md
           if [ -f components/$COMP/$COMP.kr.md ]; then
-            cat components/$COMP/$COMP.kr.md >> README.kr.md
+            cat components/$COMP/$COMP.kr.md >> /.github/tmp/README.kr.md
           fi
-          echo -e "\n\n---\n" >> README.kr.md
+          echo -e "\n\n---\n" >> /.github/tmp/README.kr.md
           if [ -f components/platform/overview.kr.md ]; then
-            cat components/platform/overview.kr.md >> README.kr.md
+            cat components/platform/overview.kr.md >> /.github/tmp/README.kr.md
           fi
 
       - name: Clone target repo
@@ -193,8 +191,8 @@ jobs:
 
       - name: Sync
         run: |
-          cp README.md target/README.md
-          cp README.kr.md target/README.kr.md
+          cp /.github/tmp/README.md target/README.md
+          cp /.github/tmp/README.kr.md target/README.kr.md
           cd target
           git config user.name "gemini-bot"
           git config user.email "actions@github.com"
