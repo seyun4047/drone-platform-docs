@@ -86,7 +86,7 @@ jobs:
 
               prompt = f"""
               Translate the following Markdown documentation into Korean.
-              Keep markdown structure, links, and code blocks intact.
+              Keep structure, links, and code blocks intact.
               Translate only descriptive text.
 
               {en_content}
@@ -160,7 +160,6 @@ jobs:
           COMP=${{ matrix.component }}
           BASE_URL="https://github.com/seyun4047/${{ matrix.repo }}/blob/main"
 
-          # 영어 README
           echo "Korean version: [한국어 문서]($BASE_URL/README.kr.md)" > README.md
           echo -e "\n---\n" >> README.md
           if [ -f components/$COMP/$COMP.md ]; then
@@ -171,7 +170,6 @@ jobs:
               cat components/platform/overview.md >> README.md
           fi
 
-          # 한글 README
           echo "해당 문서는 gemini-2.5-flash 로 자동 번역되었습니다.<br>정확한 내용은 여기서 확인해주세요: [English Document]($BASE_URL/README.md)" > README.kr.md
           echo -e "\n---\n" >> README.kr.md
           if [ -f components/$COMP/$COMP.kr.md ]; then
