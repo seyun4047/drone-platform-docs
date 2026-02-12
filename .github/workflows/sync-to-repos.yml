@@ -85,12 +85,12 @@ jobs:
                   en_content = f.read()
 
               prompt = f"""
-              Translate the following Markdown documentation into Korean.
-              Keep structure, links, and code blocks intact.
-              Translate only descriptive text.
+Translate the following Markdown documentation into Korean.
+Keep structure, code blocks, links, headings, lists, and formatting exactly as-is.
+Translate only descriptive text. Do NOT add any ```markdown blocks.
 
-              {en_content}
-              """
+{en_content}
+"""
 
               try:
                   response = client.models.generate_content(
@@ -122,7 +122,7 @@ jobs:
         run: |
           git config user.name "gemini-bot"
           git config user.email "actions@github.com"
-          git add components/**/*.md
+          git add components/**/*.kr.md
           git commit -m "docs: auto translate" || echo "No changes"
           git push
 
@@ -160,25 +160,22 @@ jobs:
           COMP=${{ matrix.component }}
           BASE_URL="https://github.com/seyun4047/${{ matrix.repo }}/blob/main"
 
-          echo "Korean version: [한국어 문서]($BASE_URL/README.kr.md)" > README.md
-          echo -e "\n---\n" >> README.md
-          if [ -f components/$COMP/$COMP.md ]; then
-              cat components/$COMP/$COMP.md >> README.md
-          fi
-          echo -e "\n\n---\n" >> README.md
-          if [ -f components/platform/overview.md ]; then
-              cat components/platform/overview.md >> README.md
-          fi
+          cat <<EOF > README.md
+Korean version: [한국어 문서]($BASE_URL/README.kr.md)
+---
+EOF
 
-          echo "해당 문서는 gemini-2.5-flash 로 자동 번역되었습니다.<br>정확한 내용은 여기서 확인해주세요: [English Document]($BASE_URL/README.md)" > README.kr.md
-          echo -e "\n---\n" >> README.kr.md
-          if [ -f components/$COMP/$COMP.kr.md ]; then
-              cat components/$COMP/$COMP.kr.md >> README.kr.md
-          fi
-          echo -e "\n\n---\n" >> README.kr.md
-          if [ -f components/platform/overview.kr.md ]; then
-              cat components/platform/overview.kr.md >> README.kr.md
-          fi
+          [ -f components/$COMP/$COMP.md ] && cat components/$COMP/$COMP.md >> README.md
+          [ -f components/platform/overview.md ] && echo -e "\n---\n" >> README.md && cat components/platform/overview.md >> README.md
+
+          cat <<EOF > README.kr.md
+해당 문서는 gemini-2.5-flash 로 자동 번역되었습니다.
+정확한 내용은 여기서 확인해주세요: [English Document]($BASE_URL/README.md)
+---
+EOF
+
+          [ -f components/$COMP/$COMP.kr.md ] && cat components/$COMP/$COMP.kr.md >> README.kr.md
+          [ -f components/platform/overview.kr.md ] && echo -e "\n---\n" >> README.kr.md && cat components/platform/overview.kr.md >> README.kr.md
 
       - name: Clone target repo
         run: |
