@@ -86,7 +86,7 @@ jobs:
 
               prompt = f"""
               Translate the following Markdown documentation into Korean.
-              Keep markdown structure, links, img, and code blocks intact.
+              Keep markdown structure, links, and code blocks intact.
               Translate only descriptive text.
 
               {en_content}
