@@ -165,24 +165,24 @@ jobs:
           COMP=${{ matrix.component }}
           BASE_URL="https://github.com/seyun4047/${{ matrix.repo }}/blob/main"
 
-          echo "Korean version: [한국어 문서]($BASE_URL/README.kr.md)" > /.github/tmp/README.md
-          echo -e "\n---\n" >> /.github/tmp/README.md
+          echo "Korean version: [한국어 문서]($BASE_URL/README.kr.md)" > /tmp/README.md
+          echo -e "\n---\n" >> /tmp/README.md
           if [ -f components/$COMP/$COMP.md ]; then
-            cat components/$COMP/$COMP.md >> /.github/tmp/README.md
+            cat components/$COMP/$COMP.md >> /tmp/README.md
           fi
-          echo -e "\n\n---\n" >> /.github/tmp/README.md
+          echo -e "\n\n---\n" >> /tmp/README.md
           if [ -f components/platform/overview.md ]; then
-            cat components/platform/overview.md >> /.github/tmp/README.md
+            cat components/platform/overview.md >> /tmp/README.md
           fi
 
-          echo "해당 문서는 gemini-2.5-flash 로 자동 번역되었습니다.<br>정확한 내용은 여기서 확인해주세요: [English Document]($BASE_URL/README.md)" > /.github/tmp/README.kr.md
-          echo -e "\n---\n" >> /.github/tmp/README.kr.md
+          echo "해당 문서는 gemini-2.5-flash 로 자동 번역되었습니다.<br>정확한 내용은 여기서 확인해주세요: [English Document]($BASE_URL/README.md)" > /tmp/README.kr.md
+          echo -e "\n---\n" >> /tmp/README.kr.md
           if [ -f components/$COMP/$COMP.kr.md ]; then
-            cat components/$COMP/$COMP.kr.md >> /.github/tmp/README.kr.md
+            cat components/$COMP/$COMP.kr.md >> /tmp/README.kr.md
           fi
-          echo -e "\n\n---\n" >> /.github/tmp/README.kr.md
+          echo -e "\n\n---\n" >> /tmp/README.kr.md
           if [ -f components/platform/overview.kr.md ]; then
-            cat components/platform/overview.kr.md >> /.github/tmp/README.kr.md
+            cat components/platform/overview.kr.md >> /tmp/README.kr.md
           fi
 
       - name: Clone target repo
@@ -191,8 +191,8 @@ jobs:
 
       - name: Sync
         run: |
-          cp /.github/tmp/README.md target/README.md
-          cp /.github/tmp/README.kr.md target/README.kr.md
+          cp /tmp/README.md target/README.md
+          cp /tmp/README.kr.md target/README.kr.md
           cd target
           git config user.name "gemini-bot"
           git config user.email "actions@github.com"
