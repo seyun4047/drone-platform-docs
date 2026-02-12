@@ -33,101 +33,8 @@ jobs:
             trans: ['components/trans-tester/trans-tester.md']
             overview: ['components/platform/overview.md']
 
-  translate:
+  translate-and-sync:
     needs: detect
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install Gemini SDK
-        run: pip install -U google-genai
-
-      - name: Translate changed components
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          CHANGED_SERVER: ${{ needs.detect.outputs.server }}
-          CHANGED_CLIENT: ${{ needs.detect.outputs.client }}
-          CHANGED_MONITORING: ${{ needs.detect.outputs.monitoring }}
-          CHANGED_TRANS: ${{ needs.detect.outputs.trans }}
-          CHANGED_OVERVIEW: ${{ needs.detect.outputs.overview }}
-        run: |
-          python - <<EOF
-          import os
-          from google import genai
-
-          client = genai.Client(
-              api_key=os.environ['GEMINI_API_KEY'],
-              http_options={'api_version': 'v1'}
-          )
-
-          MODEL_ID = "gemini-2.5-flash"
-
-          COMPONENTS = {
-              "server": os.environ.get("CHANGED_SERVER") == "true",
-              "client": os.environ.get("CHANGED_CLIENT") == "true",
-              "monitoring-server": os.environ.get("CHANGED_MONITORING") == "true",
-              "trans-tester": os.environ.get("CHANGED_TRANS") == "true",
-          }
-
-          overview_changed = os.environ.get("CHANGED_OVERVIEW") == "true"
-
-          def translate_file(en_path, kr_path):
-              if not os.path.exists(en_path):
-                  return
-
-              with open(en_path, "r", encoding="utf-8") as f:
-                  en_content = f.read()
-
-              prompt = f"""
-              Translate the following Markdown documentation into Korean.
-              Keep markdown structure, links, and code blocks intact.
-              Translate only descriptive text.
-
-              {en_content}
-              """
-
-              try:
-                  response = client.models.generate_content(
-                      model=MODEL_ID,
-                      contents=prompt
-                  )
-                  kr_content = response.text if response.text else en_content
-              except Exception:
-                  kr_content = en_content
-
-              with open(kr_path, "w", encoding="utf-8") as f:
-                  f.write(kr_content)
-
-          for component, changed in COMPONENTS.items():
-              if changed or overview_changed:
-                  translate_file(
-                      f"components/{component}/{component}.md",
-                      f"components/{component}/{component}.kr.md"
-                  )
-
-          if overview_changed:
-              translate_file(
-                  "components/platform/overview.md",
-                  "components/platform/overview.kr.md"
-              )
-          EOF
-
-      - name: Commit translations
-        run: |
-          git config user.name "gemini-bot"
-          git config user.email "actions@github.com"
-          git add components/**/*.md
-          git commit -m "docs: auto translate" || echo "No changes"
-          git push
-
-  sync:
-    needs: [detect, translate]
     runs-on: ubuntu-latest
 
     strategy:
@@ -149,13 +56,95 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Skip if not needed
-        if: needs.detect.outputs[matrix.output_key] != 'true' && needs.detect.outputs.overview != 'true'
+      - name: Check if this matrix entry needs processing
+        id: check
         run: |
-          echo "No changes. Skipping."
-          exit 0
+          COMP_CHANGED="${{ needs.detect.outputs[matrix.output_key] }}"
+          OVERVIEW_CHANGED="${{ needs.detect.outputs.overview }}"
+          if [ "$COMP_CHANGED" = "true" ] || [ "$OVERVIEW_CHANGED" = "true" ]; then
+            echo "should_run=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_run=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Python
+        if: steps.check.outputs.should_run == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Gemini SDK
+        if: steps.check.outputs.should_run == 'true'
+        run: pip install -U google-genai
+
+      - name: Translate changed files
+        if: steps.check.outputs.should_run == 'true'
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          COMP_CHANGED: ${{ needs.detect.outputs[matrix.output_key] }}
+          OVERVIEW_CHANGED: ${{ needs.detect.outputs.overview }}
+          COMPONENT: ${{ matrix.component }}
+        run: |
+          python - <<EOF
+          import os
+          from google import genai
+
+          client = genai.Client(
+              api_key=os.environ['GEMINI_API_KEY'],
+              http_options={'api_version': 'v1'}
+          )
+
+          MODEL_ID = "gemini-2.5-flash"
+
+          comp = os.environ['COMPONENT']
+          comp_changed = os.environ.get("COMP_CHANGED") == "true"
+          overview_changed = os.environ.get("OVERVIEW_CHANGED") == "true"
+
+          def translate_file(en_path, kr_path):
+              if not os.path.exists(en_path):
+                  print(f"[SKIP] {en_path} not found")
+                  return
+
+              with open(en_path, "r", encoding="utf-8") as f:
+                  en_content = f.read()
+
+              prompt = f"""
+              Translate the following Markdown documentation into Korean.
+              Keep markdown structure, links, and code blocks intact.
+              Translate only descriptive text.
+
+              {en_content}
+              """
+
+              try:
+                  response = client.models.generate_content(
+                      model=MODEL_ID,
+                      contents=prompt
+                  )
+                  kr_content = response.text if response.text else en_content
+              except Exception as e:
+                  print(f"[ERROR] Translation failed: {e}")
+                  kr_content = en_content
+
+              with open(kr_path, "w", encoding="utf-8") as f:
+                  f.write(kr_content)
+              print(f"[OK] Translated {en_path} -> {kr_path}")
+
+          if comp_changed:
+              translate_file(
+                  f"components/{comp}/{comp}.md",
+                  f"components/{comp}/{comp}.kr.md"
+              )
+
+          if overview_changed:
+              translate_file(
+                  "components/platform/overview.md",
+                  "components/platform/overview.kr.md"
+              )
+          EOF
 
       - name: Build Final READMEs
+        if: steps.check.outputs.should_run == 'true'
         run: |
           COMP=${{ matrix.component }}
           BASE_URL="https://github.com/seyun4047/${{ matrix.repo }}/blob/main"
@@ -173,10 +162,12 @@ jobs:
           cat components/platform/overview.kr.md >> README.kr.md
 
       - name: Clone target repo
+        if: steps.check.outputs.should_run == 'true'
         run: |
           git clone https://x-access-token:${{ secrets.DOCS_PUSH_TOKEN }}@github.com/seyun4047/${{ matrix.repo }}.git target
 
       - name: Sync
+        if: steps.check.outputs.should_run == 'true'
         run: |
           cp README.md target/README.md
           cp README.kr.md target/README.kr.md
@@ -185,4 +176,13 @@ jobs:
           git config user.email "actions@github.com"
           git add README.md README.kr.md
           git commit -m "docs: sync README & KR translation" || echo "No changes"
+          git push
+
+      - name: Commit translations back to source repo
+        if: steps.check.outputs.should_run == 'true'
+        run: |
+          git config user.name "gemini-bot"
+          git config user.email "actions@github.com"
+          git add components/**/*.kr.md
+          git diff --cached --quiet || git commit -m "docs: auto translate"
           git push
