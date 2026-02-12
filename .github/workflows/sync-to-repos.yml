@@ -10,6 +10,7 @@ on:
   workflow_dispatch:
 
 jobs:
+  # 1️⃣ 변경된 파일 감지
   detect:
     runs-on: ubuntu-latest
     outputs:
@@ -33,6 +34,7 @@ jobs:
             trans: ['components/trans-tester/trans-tester.md']
             overview: ['components/platform/overview.md']
 
+  # 2️⃣ 번역 및 push
   translate:
     needs: detect
     runs-on: ubuntu-latest
@@ -103,8 +105,12 @@ jobs:
           git config user.email "actions@github.com"
           git add components/**/*.kr.md
           git commit -m "docs: auto translate" || echo "No changes"
-          git push
+          
+          # remote 최신 내용 pull + rebase 후 push
+          git pull --rebase origin main || echo "No remote changes"
+          git push origin main
 
+  # 3️⃣ sync → remote 최신 번역본 기준으로 README 작성
   sync:
     needs: translate
     runs-on: ubuntu-latest
@@ -121,7 +127,7 @@ jobs:
             component: trans-tester
 
     steps:
-      - name: Checkout & Pull Latest
+      - name: Checkout target repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -152,4 +158,5 @@ jobs:
           git config user.email "actions@github.com"
           git add README.md README.kr.md
           git commit -m "docs: sync README & KR translation" || echo "No changes"
-          git push
+          git pull --rebase origin main || echo "No remote changes"
+          git push origin main
