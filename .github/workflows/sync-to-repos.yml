@@ -179,7 +179,7 @@ jobs:
           if [ -f components/platform/overview.kr.md ]; then
               cat components/platform/overview.kr.md >> README.kr.md
           fi
-
+          
       - name: Clone target repo
         run: |
           git clone https://x-access-token:${{ secrets.DOCS_PUSH_TOKEN }}@github.com/seyun4047/${{ matrix.repo }}.git target
