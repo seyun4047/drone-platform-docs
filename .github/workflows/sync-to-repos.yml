@@ -68,9 +68,10 @@ jobs:
         run: |
           python - <<EOF
           import os
-          from genai import Client
+          # 임포트 경로가 'from google import genai' 여야 합니다.
+          from google import genai
 
-          client = Client(api_key=os.environ['GEMINI_API_KEY'])
+          client = genai.Client(api_key=os.environ['GEMINI_API_KEY'])
           MODEL_ID = "gemini-1.5-flash"
 
           def translate_file(src, dest):
@@ -89,7 +90,8 @@ jobs:
               
               with open(dest, 'w', encoding='utf-8') as f:
                   f.write(response.text)
-                  
+
+          # 변경 사항 체크 및 번역
           if "${{ needs.detect.outputs[matrix.component] }}" == "true":
               translate_file(f"components/${{ matrix.component }}/${{ matrix.component }}.md", 
                              f"components/${{ matrix.component }}/${{ matrix.component }}.kr.md")
