@@ -9,7 +9,7 @@ and operational logic for individual services.
 
 | Component            | Docs Name | Description                                              | Documentation |
 |----------------------|-------------|----------------------------------------------------------|---------------|
-| Platform|Overview| Platform Overview| [Docs](https://github.com/seyun4047/drone-platform-docs/blob/main/overview.md) |
+| Platform|Overview| Platform Overview| [Docs](https://github.com/seyun4047/drone-platform-docs/blob/main/components/platform/overview.md) |
 | Server               | Server        | Core drone platform server (API, authentication, telemetry) | [Docs](https://github.com/seyun4047/drone-platform-docs/blob/main/components/server/server.md) |
 | Server               | DB Guide    | Database schema, relationships, and data management guide | [Docs](https://github.com/seyun4047/drone-platform-docs/blob/main/components/server/DB_GUIDE.md) |
 | Monitoring Server    | Monitoring-Server | Real-time drone health and connection monitoring service  | [Docs](https://github.com/seyun4047/drone-platform-docs/blob/main/components/monitoring-server/monitoring-server.md) |
