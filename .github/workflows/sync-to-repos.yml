@@ -10,7 +10,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  # 1️⃣ 변경된 파일 감지
   detect:
     runs-on: ubuntu-latest
     outputs:
@@ -34,10 +33,12 @@ jobs:
             trans: ['components/trans-tester/trans-tester.md']
             overview: ['components/platform/overview.md']
 
-  # 2️⃣ 번역 및 push
   translate:
     needs: detect
     runs-on: ubuntu-latest
+    outputs:
+      commit_sha: ${{ steps.push.outputs.commit_sha }}  # ← sync가 참조할 SHA
+
     steps:
       - uses: actions/checkout@v4
 
@@ -62,7 +63,11 @@ jobs:
           import os
           from google import genai
 
-          client = genai.Client(api_key=os.environ['GEMINI_API_KEY'], http_options={'api_version': 'v1'})
+          client = genai.Client(
+              api_key=os.environ['GEMINI_API_KEY'],
+              http_options={'api_version': 'v1'}
+          )
+
           MODEL_ID = "gemini-2.5-flash"
 
           COMPONENTS = {
@@ -71,69 +76,91 @@ jobs:
               "monitoring-server": os.environ.get("CHANGED_MONITORING") == "true",
               "trans-tester": os.environ.get("CHANGED_TRANS") == "true",
           }
+
           overview_changed = os.environ.get("CHANGED_OVERVIEW") == "true"
 
           def translate_file(en_path, kr_path):
               if not os.path.exists(en_path):
                   return
+
               with open(en_path, "r", encoding="utf-8") as f:
                   en_content = f.read()
+
               prompt = f"""
               Translate the following Markdown documentation into Korean.
               Keep structure, links, and code blocks intact.
               Translate only descriptive text.
               {en_content}
               """
+
               try:
-                  response = client.models.generate_content(model=MODEL_ID, contents=prompt)
+                  response = client.models.generate_content(
+                      model=MODEL_ID,
+                      contents=prompt
+                  )
                   kr_content = response.text if response.text else en_content
               except Exception:
                   kr_content = en_content
+
               with open(kr_path, "w", encoding="utf-8") as f:
                   f.write(kr_content)
 
-          for comp, changed in COMPONENTS.items():
+          for component, changed in COMPONENTS.items():
               if changed or overview_changed:
-                  translate_file(f"components/{comp}/{comp}.md", f"components/{comp}/{comp}.kr.md")
+                  translate_file(
+                      f"components/{component}/{component}.md",
+                      f"components/{component}/{component}.kr.md"
+                  )
+
           if overview_changed:
-              translate_file("components/platform/overview.md", "components/platform/overview.kr.md")
+              translate_file(
+                  "components/platform/overview.md",
+                  "components/platform/overview.kr.md"
+              )
           EOF
 
-      - name: Commit & push translations
+      - name: Commit translations
+        id: push  # ← id 추가
         run: |
           git config user.name "gemini-bot"
           git config user.email "actions@github.com"
-          git add components/**/*.kr.md
+          git add components/**/*.md
           git commit -m "docs: auto translate" || echo "No changes"
-          
-          # remote 최신 내용 pull + rebase 후 push
-          git pull --rebase origin main || echo "No remote changes"
-          git push origin main
+          git push
+          # ★ 핵심: push 완료 후 현재 HEAD SHA를 output으로 저장
+          echo "commit_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
 
-  # 3️⃣ sync → remote 최신 번역본 기준으로 README 작성
   sync:
-    needs: translate
+    needs: [detect, translate]
     runs-on: ubuntu-latest
+
     strategy:
       matrix:
         include:
           - repo: drone-platform-server
             component: server
+            output_key: server
           - repo: drone-platform-client
             component: client
+            output_key: client
           - repo: drone-platform-monitoring-server
             component: monitoring-server
+            output_key: monitoring
           - repo: drone-platform-trans-tester
             component: trans-tester
+            output_key: trans
 
     steps:
-      - name: Checkout target repo
-        uses: actions/checkout@v4
+      # ★ 핵심: translate job이 push한 커밋 SHA를 명시적으로 checkout
+      - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          ref: ${{ needs.translate.outputs.commit_sha }}
 
-      - name: Pull latest translations
-        run: git pull origin main
+      - name: Skip if not needed
+        if: needs.detect.outputs[matrix.output_key] != 'true' && needs.detect.outputs.overview != 'true'
+        run: |
+          echo "No changes. Skipping."
+          exit 0
 
       - name: Build Final READMEs
         run: |
@@ -142,21 +169,35 @@ jobs:
 
           echo "Korean version: [한국어 문서]($BASE_URL/README.kr.md)" > README.md
           echo -e "\n---\n" >> README.md
-          cat components/$COMP/$COMP.md >> README.md
+          if [ -f components/$COMP/$COMP.md ]; then
+            cat components/$COMP/$COMP.md >> README.md
+          fi
           echo -e "\n\n---\n" >> README.md
-          cat components/platform/overview.md >> README.md
+          if [ -f components/platform/overview.md ]; then
+            cat components/platform/overview.md >> README.md
+          fi
 
           echo "해당 문서는 gemini-2.5-flash 로 자동 번역되었습니다.<br>정확한 내용은 여기서 확인해주세요: [English Document]($BASE_URL/README.md)" > README.kr.md
           echo -e "\n---\n" >> README.kr.md
-          cat components/$COMP/$COMP.kr.md >> README.kr.md
+          if [ -f components/$COMP/$COMP.kr.md ]; then
+            cat components/$COMP/$COMP.kr.md >> README.kr.md
+          fi
           echo -e "\n\n---\n" >> README.kr.md
-          cat components/platform/overview.kr.md >> README.kr.md
+          if [ -f components/platform/overview.kr.md ]; then
+            cat components/platform/overview.kr.md >> README.kr.md
+          fi
 
-      - name: Commit & push final READMEs
+      - name: Clone target repo
         run: |
+          git clone https://x-access-token:${{ secrets.DOCS_PUSH_TOKEN }}@github.com/seyun4047/${{ matrix.repo }}.git target
+
+      - name: Sync
+        run: |
+          cp README.md target/README.md
+          cp README.kr.md target/README.kr.md
+          cd target
           git config user.name "gemini-bot"
           git config user.email "actions@github.com"
           git add README.md README.kr.md
           git commit -m "docs: sync README & KR translation" || echo "No changes"
-          git pull --rebase origin main || echo "No remote changes"
-          git push origin main
+          git push
