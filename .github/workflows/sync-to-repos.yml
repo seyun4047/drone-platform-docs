@@ -139,7 +139,7 @@ jobs:
             echo "" > README.kr.md
             cat components/${{ matrix.component }}/${{ matrix.component }}.kr.md >> README.kr.md
             echo "" >> README.kr.md
-            cat overview.md >> README.kr.md
+            cat components/platform/overview.md >> README.kr.md
           fi
 
       # =========================================================
