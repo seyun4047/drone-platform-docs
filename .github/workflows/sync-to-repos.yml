@@ -1,19 +1,152 @@
-name: Translate Docs and Sync to Component Repos
-
-on:
-  push:
-    branches:
-      - main
-    paths:
-      - overview.md
-      - components/**/*.md
-  workflow_dispatch:
+name: Sync docs to component READMEs And Translate
 
 permissions:
   contents: write
 
+on:
+  push:
+    paths:
+      - 'components/**/*.md'
+  workflow_dispatch:
+
 jobs:
-  translate-and-sync:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      server: ${{ steps.filter.outputs.server }}
+      client: ${{ steps.filter.outputs.client }}
+      monitoring: ${{ steps.filter.outputs.monitoring }}
+      trans: ${{ steps.filter.outputs.trans }}
+      overview: ${{ steps.filter.outputs.overview }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            server: ['components/server/server.md']
+            client: ['components/client/client.md']
+            monitoring: ['components/monitoring-server/monitoring-server.md']
+            trans: ['components/trans-tester/trans-tester.md']
+            overview: ['components/platform/overview.md']
+
+  translate:
+    needs: detect
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Gemini SDK
+        run: pip install -U google-genai
+
+      - name: Translate all changed components
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          CHANGED_SERVER: ${{ needs.detect.outputs.server }}
+          CHANGED_CLIENT: ${{ needs.detect.outputs.client }}
+          CHANGED_MONITORING: ${{ needs.detect.outputs.monitoring }}
+          CHANGED_TRANS: ${{ needs.detect.outputs.trans }}
+          CHANGED_OVERVIEW: ${{ needs.detect.outputs.overview }}
+        run: |
+          python - <<EOF
+          import os
+          from google import genai
+
+          client = genai.Client(
+              api_key=os.environ['GEMINI_API_KEY'],
+              http_options={'api_version': 'v1'}
+          )
+
+          MODEL_ID = "gemini-2.5-flash-lite"
+
+          COMPONENTS = {
+              "server":           os.environ.get("CHANGED_SERVER") == "true",
+              "client":           os.environ.get("CHANGED_CLIENT") == "true",
+              "monitoring-server":os.environ.get("CHANGED_MONITORING") == "true",
+              "trans-tester":     os.environ.get("CHANGED_TRANS") == "true",
+          }
+          overview_changed = os.environ.get("CHANGED_OVERVIEW") == "true"
+
+          def translate_and_inject(component):
+              base_url = f"https://github.com/seyun4047/drone-platform-docs/blob/main/components/{component}"
+              en_path = f"components/{component}/{component}.md"
+              kr_path = f"components/{component}/{component}.kr.md"
+
+              if not os.path.exists(en_path):
+                  return
+
+              with open(en_path, "r", encoding="utf-8") as f:
+                  en_content = f.read()
+
+              # Translate EN → KR
+              prompt = f"""
+              Translate the following Markdown documentation into Korean.
+              Keep markdown structure, links, and code blocks intact.
+              Translate only descriptive text.
+
+              {en_content}
+              """
+              try:
+                  response = client.models.generate_content(model=MODEL_ID, contents=prompt)
+                  kr_content = response.text if response.text else en_content
+              except Exception:
+                  kr_content = en_content
+
+              kr_header = f"해당 문서는 gemini-2.5-flash-lite 로 자동 번역되어 부자연스러운 부분이 있을 수 있으니,<br>정확한 내용을 여기서 확인해주세요. : [영어 문서]({base_url}/{component}.md)\n\n---\n\n"
+              with open(kr_path, "w", encoding="utf-8") as f:
+                  f.write(kr_header + kr_content)
+
+              # Inject KR link into EN
+              with open(en_path, "r", encoding="utf-8") as f:
+                  original_en = f.read()
+
+              if not original_en.startswith("Korean version:"):
+                  en_header = f"Korean version: [한국어 문서]({base_url}/{component}.kr.md)\n\n---\n\n"
+                  with open(en_path, "w", encoding="utf-8") as f:
+                      f.write(en_header + original_en)
+
+          # Process each changed component
+          for component, changed in COMPONENTS.items():
+              if changed or overview_changed:
+                  translate_and_inject(component)
+
+          # Translate overview
+          if overview_changed:
+              ov_en = "components/platform/overview.md"
+              ov_kr = "components/platform/overview.kr.md"
+              if os.path.exists(ov_en):
+                  with open(ov_en, "r", encoding="utf-8") as f:
+                      ov_content = f.read()
+                  try:
+                      response = client.models.generate_content(
+                          model=MODEL_ID,
+                          contents=f"Translate into Korean:\n\n{ov_content}"
+                      )
+                      ov_result = response.text if response.text else ov_content
+                  except Exception:
+                      ov_result = ov_content
+                  with open(ov_kr, "w", encoding="utf-8") as f:
+                      f.write(ov_result)
+          EOF
+      - name: Commit all translations
+        run: |
+          git config user.name "gemini-bot"
+          git config user.email "actions@github.com"
+          git add components/**/*.md
+          git commit -m "docs: auto translate + inject cross-language links" || echo "No changes"
+          git push
+
+  sync:
+    needs: [detect, translate]
     runs-on: ubuntu-latest
 
     strategy:
@@ -21,155 +154,61 @@ jobs:
         include:
           - repo: drone-platform-server
             component: server
+            output_key: server
           - repo: drone-platform-client
             component: client
+            output_key: client
           - repo: drone-platform-monitoring-server
             component: monitoring-server
+            output_key: monitoring
           - repo: drone-platform-trans-tester
             component: trans-tester
+            output_key: trans
 
     steps:
-      - name: Checkout docs repo
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          ref: main
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install Gemini SDK
-        run: pip install google-generativeai
-
-      # =========================================================
-      # 1️⃣ TRANSLATION + BIDIRECTIONAL LINK INJECTION
-      # =========================================================
-      - name: Translate and inject links
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      - name: Skip if not needed
+        if: needs.detect.outputs[matrix.output_key] != 'true' && needs.detect.outputs.overview != 'true'
         run: |
-          python << 'EOF'
-          import os
-          import google.generativeai as genai
+          echo "No changes for ${{ matrix.component }}. Skipping."
+          exit 0
 
-          genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-          model = genai.GenerativeModel("gemini-2.5-flash-lite")
-
-          component = "${{ matrix.component }}"
-          en_path = f"components/{component}/{component}.md"
-          kr_path = f"components/{component}/{component}.kr.md"
-
-          if not os.path.exists(en_path):
-              exit()
-
-          def translate_text(text):
-              prompt = f"""
-              Translate the following Markdown documentation into Korean.
-
-              Rules:
-              - Preserve markdown formatting
-              - Do NOT translate code blocks
-              - Keep headings structure unchanged
-
-              Markdown:
-              {text}
-              """
-              response = model.generate_content(prompt)
-              return response.text
-
-          # Repo URLs
-          en_repo_url = f"https://github.com/seyun4047/drone-platform-{component}/blob/main/README.md"
-          kr_repo_url = f"https://github.com/seyun4047/drone-platform-{component}/blob/main/README.kr.md"
-
-          # --------------------------
-          # Inject KR link into EN
-          # --------------------------
-          with open(en_path, "r", encoding="utf-8") as f:
-              en_content = f.read()
-
-          if not en_content.startswith("https://github.com"):
-              en_content = kr_repo_url + "\n\n---\n\n" + en_content
-              with open(en_path, "w", encoding="utf-8") as f:
-                  f.write(en_content)
-
-          # Reload EN content
-          with open(en_path, "r", encoding="utf-8") as f:
-              en_content = f.read()
-
-          # --------------------------
-          # Build KR header
-          # --------------------------
-          kr_header = (
-              f"해당 문서는 gemini-2.5-flash-lite 로 자동 번역되어 부자연스러운 부분이 있을 수 있으니,<br>"
-              f"정확한 내용을 여기서 확인해주세요. : [영어 문서]({en_repo_url})\n\n---\n\n"
-          )
-
-          # --------------------------
-          # Translate if KR missing
-          # --------------------------
-          if not os.path.exists(kr_path):
-              translated = translate_text(en_content)
-              with open(kr_path, "w", encoding="utf-8") as f:
-                  f.write(kr_header + translated)
-          else:
-              with open(kr_path, "r", encoding="utf-8") as f:
-                  kr_content = f.read()
-
-              if not kr_content.startswith("해당 문서는 gemini"):
-                  kr_content = kr_header + kr_content
-                  with open(kr_path, "w", encoding="utf-8") as f:
-                      f.write(kr_content)
-
-          EOF
-
-      # =========================================================
-      # 2️⃣ BUILD README FILES
-      # =========================================================
-      - name: Build English README
+      - name: Build Final READMEs
         run: |
+          COMP=${{ matrix.component }}
+
           echo "" > README.md
-          cat components/${{ matrix.component }}/${{ matrix.component }}.md >> README.md
-          echo "" >> README.md
-          cat overview.md >> README.md
+          cat components/$COMP/$COMP.md >> README.md
+          echo -e "\n\n---\n" >> README.md
+          cat components/platform/overview.md >> README.md
 
-      - name: Build Korean README
-        run: |
-          if [ -f components/${{ matrix.component }}/${{ matrix.component }}.kr.md ]; then
-            echo "" > README.kr.md
-            cat components/${{ matrix.component }}/${{ matrix.component }}.kr.md >> README.kr.md
-            echo "" >> README.kr.md
+          echo "" > README.kr.md
+          if [ -f components/$COMP/$COMP.kr.md ]; then
+            cat components/$COMP/$COMP.kr.md >> README.kr.md
+          else
+            cat components/$COMP/$COMP.md >> README.kr.md
+          fi
+          echo -e "\n\n---\n" >> README.kr.md
+          if [ -f components/platform/overview.kr.md ]; then
+            cat components/platform/overview.kr.md >> README.kr.md
+          else
             cat components/platform/overview.md >> README.kr.md
           fi
 
-      # =========================================================
-      # 3️⃣ CLONE TARGET REPO
-      # =========================================================
       - name: Clone target repo
         run: |
           git clone https://x-access-token:${{ secrets.DOCS_PUSH_TOKEN }}@github.com/seyun4047/${{ matrix.repo }}.git target
 
-      # =========================================================
-      # 4️⃣ COPY FILES
-      # =========================================================
-      - name: Copy README files
+      - name: Sync to Target Repo
         run: |
           cp README.md target/README.md
-          if [ -f README.kr.md ]; then
-            cp README.kr.md target/README.kr.md
-          fi
-
-      # =========================================================
-      # 5️⃣ COMMIT & PUSH
-      # =========================================================
-      - name: Commit and push
-        run: |
+          cp README.kr.md target/README.kr.md
           cd target
-          git config user.name "github-actions"
+          git config user.name "gemini-bot"
           git config user.email "actions@github.com"
-
-          git add README.md README.kr.md || true
-          git commit -m "docs: auto translate + inject cross-language links + sync" || echo "No changes"
-
-          git pull --rebase origin main
-          git push origin main
+          git add README.md README.kr.md
+          git commit -m "docs: sync README & KR translation" || echo "No changes"
+          git push
