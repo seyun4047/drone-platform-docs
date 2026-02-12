@@ -48,7 +48,7 @@ jobs:
       - name: Install Gemini SDK
         run: pip install -U google-genai
 
-      - name: Translate all changed components
+      - name: Translate changed components
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           CHANGED_SERVER: ${{ needs.detect.outputs.server }}
@@ -69,25 +69,21 @@ jobs:
           MODEL_ID = "gemini-2.5-flash-lite"
 
           COMPONENTS = {
-              "server":           os.environ.get("CHANGED_SERVER") == "true",
-              "client":           os.environ.get("CHANGED_CLIENT") == "true",
-              "monitoring-server":os.environ.get("CHANGED_MONITORING") == "true",
-              "trans-tester":     os.environ.get("CHANGED_TRANS") == "true",
+              "server": os.environ.get("CHANGED_SERVER") == "true",
+              "client": os.environ.get("CHANGED_CLIENT") == "true",
+              "monitoring-server": os.environ.get("CHANGED_MONITORING") == "true",
+              "trans-tester": os.environ.get("CHANGED_TRANS") == "true",
           }
+
           overview_changed = os.environ.get("CHANGED_OVERVIEW") == "true"
 
-          def translate_and_inject(component):
-              base_url = f"https://github.com/seyun4047/drone-platform-docs/blob/main/components/{component}"
-              en_path = f"components/{component}/{component}.md"
-              kr_path = f"components/{component}/{component}.kr.md"
-
+          def translate_file(en_path, kr_path):
               if not os.path.exists(en_path):
                   return
 
               with open(en_path, "r", encoding="utf-8") as f:
                   en_content = f.read()
 
-              # Translate EN → KR
               prompt = f"""
               Translate the following Markdown documentation into Korean.
               Keep markdown structure, links, and code blocks intact.
@@ -95,54 +91,39 @@ jobs:
 
               {en_content}
               """
+
               try:
-                  response = client.models.generate_content(model=MODEL_ID, contents=prompt)
+                  response = client.models.generate_content(
+                      model=MODEL_ID,
+                      contents=prompt
+                  )
                   kr_content = response.text if response.text else en_content
               except Exception:
                   kr_content = en_content
 
-              kr_header = f"해당 문서는 gemini-2.5-flash-lite 로 자동 번역되어 부자연스러운 부분이 있을 수 있으니,<br>정확한 내용을 여기서 확인해주세요. : [영어 문서]({base_url}/{component}.md)\n\n---\n\n"
               with open(kr_path, "w", encoding="utf-8") as f:
-                  f.write(kr_header + kr_content)
+                  f.write(kr_content)
 
-              # Inject KR link into EN
-              with open(en_path, "r", encoding="utf-8") as f:
-                  original_en = f.read()
-
-              if not original_en.startswith("Korean version:"):
-                  en_header = f"Korean version: [한국어 문서]({base_url}/{component}.kr.md)\n\n---\n\n"
-                  with open(en_path, "w", encoding="utf-8") as f:
-                      f.write(en_header + original_en)
-
-          # Process each changed component
           for component, changed in COMPONENTS.items():
               if changed or overview_changed:
-                  translate_and_inject(component)
+                  translate_file(
+                      f"components/{component}/{component}.md",
+                      f"components/{component}/{component}.kr.md"
+                  )
 
-          # Translate overview
           if overview_changed:
-              ov_en = "components/platform/overview.md"
-              ov_kr = "components/platform/overview.kr.md"
-              if os.path.exists(ov_en):
-                  with open(ov_en, "r", encoding="utf-8") as f:
-                      ov_content = f.read()
-                  try:
-                      response = client.models.generate_content(
-                          model=MODEL_ID,
-                          contents=f"Translate into Korean:\n\n{ov_content}"
-                      )
-                      ov_result = response.text if response.text else ov_content
-                  except Exception:
-                      ov_result = ov_content
-                  with open(ov_kr, "w", encoding="utf-8") as f:
-                      f.write(ov_result)
+              translate_file(
+                  "components/platform/overview.md",
+                  "components/platform/overview.kr.md"
+              )
           EOF
-      - name: Commit all translations
+
+      - name: Commit translations
         run: |
           git config user.name "gemini-bot"
           git config user.email "actions@github.com"
           git add components/**/*.md
-          git commit -m "docs: auto translate + inject cross-language links" || echo "No changes"
+          git commit -m "docs: auto translate" || echo "No changes"
           git push
 
   sync:
@@ -167,31 +148,35 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: main
 
       - name: Skip if not needed
         if: needs.detect.outputs[matrix.output_key] != 'true' && needs.detect.outputs.overview != 'true'
         run: |
-          echo "No changes for ${{ matrix.component }}. Skipping."
+          echo "No changes. Skipping."
           exit 0
 
       - name: Build Final READMEs
         run: |
           COMP=${{ matrix.component }}
+          BASE_URL="https://github.com/seyun4047/${{ matrix.repo }}/blob/main"
 
-          echo "" > README.md
+          echo "Korean version: [한국어 문서]($BASE_URL/README.kr.md)" > README.md
+          echo -e "\n---\n" >> README.md
           cat components/$COMP/$COMP.md >> README.md
           echo -e "\n\n---\n" >> README.md
           cat components/platform/overview.md >> README.md
 
-          echo "" > README.kr.md
+          echo "해당 문서는 gemini-2.5-flash-lite 로 자동 번역되었습니다.<br>정확한 내용은 여기서 확인해주세요: [English Document]($BASE_URL/README.md)" > README.kr.md
+          echo -e "\n---\n" >> README.kr.md
+
           if [ -f components/$COMP/$COMP.kr.md ]; then
             cat components/$COMP/$COMP.kr.md >> README.kr.md
           else
             cat components/$COMP/$COMP.md >> README.kr.md
           fi
+
           echo -e "\n\n---\n" >> README.kr.md
+
           if [ -f components/platform/overview.kr.md ]; then
             cat components/platform/overview.kr.md >> README.kr.md
           else
@@ -202,7 +187,7 @@ jobs:
         run: |
           git clone https://x-access-token:${{ secrets.DOCS_PUSH_TOKEN }}@github.com/seyun4047/${{ matrix.repo }}.git target
 
-      - name: Sync to Target Repo
+      - name: Sync
         run: |
           cp README.md target/README.md
           cp README.kr.md target/README.kr.md
