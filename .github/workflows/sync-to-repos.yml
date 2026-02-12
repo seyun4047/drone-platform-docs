@@ -168,20 +168,9 @@ jobs:
 
           echo "해당 문서는 gemini-2.5-flash 로 자동 번역되었습니다.<br>정확한 내용은 여기서 확인해주세요: [English Document]($BASE_URL/README.md)" > README.kr.md
           echo -e "\n---\n" >> README.kr.md
-
-          if [ -f components/$COMP/$COMP.kr.md ]; then
-            cat components/$COMP/$COMP.kr.md >> README.kr.md
-          else
-            cat components/$COMP/$COMP.md >> README.kr.md
-          fi
-
+          cat components/$COMP/$COMP.kr.md >> README.kr.md
           echo -e "\n\n---\n" >> README.kr.md
-
-          if [ -f components/platform/overview.kr.md ]; then
-            cat components/platform/overview.kr.md >> README.kr.md
-          else
-            cat components/platform/overview.md >> README.kr.md
-          fi
+          cat components/platform/overview.kr.md >> README.kr.md
 
       - name: Clone target repo
         run: |
