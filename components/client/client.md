@@ -74,3 +74,4 @@ The screen must display speed and other flight information.
 For coordinate detection, a simple GPS module should be attached, and its data must be visible on the screen so it can be detected in real time.
 
 ---
+ 

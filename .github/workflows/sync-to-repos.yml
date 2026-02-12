@@ -77,7 +77,8 @@ jobs:
           overview_changed = os.environ.get("CHANGED_OVERVIEW") == "true"
 
           def translate_and_inject(component):
-              component_url = f"https://github.com/seyun4047/drone-platform-{component}"
+              component_url = "https://github.com/seyun4047/drone-platform-{component}/blob/main/README.md"
+              component_kr_url = "https://github.com/seyun4047/drone-platform-{component}/blob/main/README.kr.md"
               comp_en_path = f"README.md"
               comp_kr_path = f"README.kr.md"
               base_url = f"https://github.com/seyun4047/drone-platform-docs/blob/main/components/{component}"
@@ -104,7 +105,7 @@ jobs:
               except Exception:
                   kr_content = en_content
 
-              kr_header = f"해당 문서는 gemini-2.5-flash-lite 로 자동 번역되어 부자연스러운 부분이 있을 수 있으니,<br>정확한 내용을 여기서 확인해주세요. : [영어 문서]({component_url}/{comp_en_path})\n\n---\n\n"
+              kr_header = f"해당 문서는 gemini-2.5-flash-lite 로 자동 번역되어 부자연스러운 부분이 있을 수 있으니,<br>정확한 내용을 여기서 확인해주세요. : [영어 문서]({component_url})\n\n---\n\n"
               with open(kr_path, "w", encoding="utf-8") as f:
                   f.write(kr_header + kr_content)
 
@@ -113,7 +114,7 @@ jobs:
                   original_en = f.read()
 
               if not original_en.startswith("Korean version:"):
-                  en_header = f"Korean version: [한국어 문서]({component_url}/{comp_kr_path})\n\n---\n\n"
+                  en_header = f"Korean version: [한국어 문서]({component_kr_url})\n\n---\n\n"
                   with open(en_path, "w", encoding="utf-8") as f:
                       f.write(en_header + original_en)
 
