@@ -101,7 +101,7 @@ jobs:
               except Exception:
                   kr_content = en_content
 
-              kr_header = f"원본보기: [ENGLISH GUIDE]({base_url}/{component}.md)\n\n---\n\n"
+              kr_header = f"해당문서는 gemini-2.5-flash-lite 로 번역되어 부자연스러운 부분이 있을 수 있으니, 정확한 내용을 여기서 확인해주세요..₩n원본보기: [ENGLISH GUIDE]({base_url}/{component}.md)\n\n---\n\n"
               with open(kr_path, "w", encoding="utf-8") as f:
                   f.write(kr_header + kr_content)
 
