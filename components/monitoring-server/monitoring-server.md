@@ -1,3 +1,7 @@
+Korean version: [한국어 문서](https://github.com/seyun4047/drone-platform-docs/blob/main/components/monitoring-server/monitoring-server.kr.md)
+
+---
+
 # Drone Platform Monitoring Server
 
 ---
