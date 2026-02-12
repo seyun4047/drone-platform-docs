@@ -33,6 +33,7 @@ jobs:
             trans: ['components/trans-tester/trans-tester.md']
             overview: ['components/platform/overview.md']
 
+  # ✅ NEW: Single job that handles ALL translations and commits once
   translate:
     needs: detect
     runs-on: ubuntu-latest
@@ -138,6 +139,7 @@ jobs:
                       f.write(ov_result)
           EOF
 
+      # ✅ Single commit — no more race condition
       - name: Commit all translations
         run: |
           git config user.name "gemini-bot"
@@ -147,7 +149,7 @@ jobs:
           git push
 
   sync:
-    needs: [detect, translate]
+    needs: [detect, translate]  # ✅ Waits for translate to finish before pushing
     runs-on: ubuntu-latest
 
     strategy:
@@ -169,7 +171,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          ref: main  # ✅ Pull the latest commit (with translations) after translate job
 
       - name: Skip if not needed
         if: needs.detect.outputs[matrix.output_key] != 'true' && needs.detect.outputs.overview != 'true'
