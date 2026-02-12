@@ -50,14 +50,19 @@ jobs:
             component: trans-tester
             output_key: trans
 
-    if: needs.detect.outputs[matrix.output_key] == 'true' || needs.detect.outputs.overview == 'true'
-
     steps:
       - uses: actions/checkout@v4
 
-      # ------------------------
+      # ✅ Step-level conditional skip (matrix 안전 사용)
+      - name: Skip if not needed
+        if: needs.detect.outputs[matrix.output_key] != 'true' && needs.detect.outputs.overview != 'true'
+        run: |
+          echo "No changes for ${{ matrix.component }}. Skipping."
+          exit 0
+
+      # ----------------------------
       # Python Setup
-      # ------------------------
+      # ----------------------------
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -67,9 +72,9 @@ jobs:
       - name: Install Gemini SDK
         run: pip install -U google-genai
 
-      # ------------------------
-      # Translate & Inject Links
-      # ------------------------
+      # ----------------------------
+      # Translate + Inject Cross Links
+      # ----------------------------
 
       - name: Translate and inject cross-links
         env:
@@ -91,14 +96,14 @@ jobs:
           en_path = f"components/{component}/{component}.md"
           kr_path = f"components/{component}/{component}.kr.md"
 
-          # -------- Translate to KR --------
+          # ---- Translate EN → KR ----
           if os.path.exists(en_path):
-              with open(en_path, 'r', encoding='utf-8') as f:
+              with open(en_path, "r", encoding="utf-8") as f:
                   en_content = f.read()
 
               prompt = f"""
               Translate the following Markdown documentation into Korean.
-              Keep all markdown structure, links, and code blocks intact.
+              Keep markdown structure, links, and code blocks intact.
               Translate only descriptive text.
 
               {en_content}
@@ -116,28 +121,28 @@ jobs:
               kr_header = f"원본보기: [ENGLISH GUIDE]({base_url}/{component}.md)\n\n---\n\n"
               kr_content = kr_header + kr_content
 
-              with open(kr_path, 'w', encoding='utf-8') as f:
+              with open(kr_path, "w", encoding="utf-8") as f:
                   f.write(kr_content)
 
-          # -------- Inject Korean link into EN --------
+          # ---- Inject KR link into EN ----
           if os.path.exists(en_path):
-              with open(en_path, 'r', encoding='utf-8') as f:
+              with open(en_path, "r", encoding="utf-8") as f:
                   original_en = f.read()
 
               en_header = f"Korean version: [한국어 문서]({base_url}/{component}.kr.md)\n\n---\n\n"
 
               if not original_en.startswith("Korean version:"):
                   updated_en = en_header + original_en
-                  with open(en_path, 'w', encoding='utf-8') as f:
+                  with open(en_path, "w", encoding="utf-8") as f:
                       f.write(updated_en)
 
-          # -------- Overview Translation --------
+          # ---- Overview Translation ----
           if "${{ needs.detect.outputs.overview }}" == "true":
               ov_en = "components/platform/overview.md"
               ov_kr = "components/platform/overview.kr.md"
 
               if os.path.exists(ov_en):
-                  with open(ov_en, 'r', encoding='utf-8') as f:
+                  with open(ov_en, "r", encoding="utf-8") as f:
                       ov_content = f.read()
 
                   try:
@@ -145,30 +150,29 @@ jobs:
                           model=MODEL_ID,
                           contents=f"Translate into Korean:\n\n{ov_content}"
                       )
-                      result = response.text if response.text else ov_content
+                      ov_result = response.text if response.text else ov_content
                   except Exception:
-                      result = ov_content
+                      ov_result = ov_content
 
-                  with open(ov_kr, 'w', encoding='utf-8') as f:
-                      f.write(result)
-
+                  with open(ov_kr, "w", encoding="utf-8") as f:
+                      f.write(ov_result)
           EOF
 
-      # ------------------------
-      # Commit back to docs repo
-      # ------------------------
+      # ----------------------------
+      # Commit updates to docs repo
+      # ----------------------------
 
       - name: Commit docs repo updates
         run: |
           git config user.name "gemini-bot"
           git config user.email "actions@github.com"
           git add components/**/*.md
-          git commit -m "docs: auto translate + inject cross language links" || echo "No changes"
+          git commit -m "docs: auto translate + inject cross-language links" || echo "No changes"
           git push
 
-      # ------------------------
+      # ----------------------------
       # Build README for target repo
-      # ------------------------
+      # ----------------------------
 
       - name: Build Final READMEs
         run: |
@@ -180,13 +184,21 @@ jobs:
           cat components/platform/overview.md >> README.md
 
           echo "" > README.kr.md
-          [ -f components/$COMP/$COMP.kr.md ] && cat components/$COMP/$COMP.kr.md >> README.kr.md || cat components/$COMP/$COMP.md >> README.kr.md
+          if [ -f components/$COMP/$COMP.kr.md ]; then
+            cat components/$COMP/$COMP.kr.md >> README.kr.md
+          else
+            cat components/$COMP/$COMP.md >> README.kr.md
+          fi
           echo -e "\n\n---\n" >> README.kr.md
-          [ -f components/platform/overview.kr.md ] && cat components/platform/overview.kr.md >> README.kr.md || cat components/platform/overview.md >> README.kr.md
+          if [ -f components/platform/overview.kr.md ]; then
+            cat components/platform/overview.kr.md >> README.kr.md
+          else
+            cat components/platform/overview.md >> README.kr.md
+          fi
 
-      # ------------------------
-      # Push to component repo
-      # ------------------------
+      # ----------------------------
+      # Push to Component Repo
+      # ----------------------------
 
       - name: Clone target repo
         run: |
