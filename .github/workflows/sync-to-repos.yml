@@ -1,5 +1,8 @@
 name: Sync docs to component READMEs And Translate
 
+permissions:
+  contents: write
+  
 on:
   push:
     paths:
