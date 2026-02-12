@@ -1,73 +1,56 @@
-Korean version: [한국어 문서](https://github.com/seyun4047/drone-platform-server/blob/main/README.kr.md)
+Korean version: [한국어 문서](https://github.com/seyun4047/drone-platform-monitoring-server/blob/main/README.kr.md)
 
 ---
 
-# Drone Platform Server
+# Drone Platform Monitoring Server
 
 ---
-## Overview
-The Drone Platform Server is the core backend service of the Manufacturer-Independent Drone Platform.<br>
+## How It Works
+The monitoring server runs as a separate(local) service and connects to
+Redis and MySQL instances <br>that are already running on the main [Drone Platform Server](https://github.com/seyun4047/drone-platform-server).
 
-It is responsible for managing the entire lifecycle of drone sessions, authentication, <br>telemetry processing, and high-volume request handling across the platform.<br>
-
-This server acts as the central coordination layer between drones, data storage systems, and external services.
+This system uses a Redis ZSET-based heartbeat monitoring mechanism
+<br>to automatically detect and disconnect drones that stop sending heartbeats.
 
 ---
+## What It Monitors
+The primary role of this service is to detect abnormal drone states, including:
+- Drones that have been inactive for a specified period
+- Drones that stop sending heartbeat signals
+- Drones that fail to send status updates
 
-## Core Responsibilities
-
-### 1. Drone Authentication & Session Management
-The server manages secure and scalable drone sessions using:
-- Authorized Drone Database (MySQL)
-Maintains the list of registered and approved drones.
-- Drone Authentication Tokens (Redis)
-Issues and validates access tokens for authenticated drones.
-- Drone Heartbeat Tracking (Redis)
-Tracks real-time connectivity status using time-indexed heartbeat data.
-
-### 2. Telemetry & Event Processing
-The server receives and processes telemetry and event data transmitted from [drone-client](https://github.com/seyun4047/drone-platform-client), including:
-- Telemetry Data
-Processes real-time operational status data from active drones.
-- Event Data
-Processes event data, such as Human detection and other mission-triggered activities.
+---
+## How It Helps
+By identifying and handling these cases, the Monitoring Server helps:
+- Prevent unnecessary server resource consumption
+- Reduce database load
+- Maintain overall platform stability
 
 ---
 
 ## Usage
-### Local Build
 ```bash
-# Export env
-export $(cat .env | xargs)
-
-# Build the project (Gradle)
+# Load Environment Variables
+set -a
+source dev.env
+set +a
+```
+```bash
+# Build
 ./gradlew build
-
-# Run locally with 'local' profile
-./gradlew bootRun --args='--spring.profiles.active=local'
 ```
-### Docker Build
 ```bash
-# Build Images and Start (MySQL, Redis, App)
-docker compose up --build
-
-# Stop and remove containers
-docker compose down
+# Run
+./gradlew bootRun
 ```
----
-## Test
-### Flow Test with Mock Data
-```bash
-# Test
-./gradlew test
-```
-### Flow Test with Real Data
-> If you want to test with real drone data, check it out here: [Drone Data Tester](https://github.com/seyun4047/drone-platform-trans-tester)   
 
 ---
-## DB QUIDE
-### MYSQL DB USAGE QUIDE
->  If you want to know MySQL usage guide, check it out here: [DB GUIDE](https://github.com/seyun4047/drone-platform-docs/blob/main/components/server/DB_GUIDE.md)
+## Monitoring Flow
+The monitoring process follows the flow below: 
+|Monitoring Server|
+|---|
+|<img width="450" alt="Untitled diagram-2026-02-11-173920" src="https://github.com/user-attachments/assets/adbbeee5-7544-46c0-a276-0a04aae3e303" />|
+
 ---
 
 
