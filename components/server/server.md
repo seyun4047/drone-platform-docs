@@ -69,4 +69,3 @@ docker compose down
 ### MYSQL DB USAGE QUIDE
 >  If you want to know MySQL usage guide, check it out here: [DB GUIDE](https://github.com/seyun4047/drone-platform-docs/blob/main/components/server/DB_GUIDE.md)
 ---
- 

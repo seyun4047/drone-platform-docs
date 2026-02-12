@@ -52,4 +52,3 @@ The monitoring process follows the flow below: 
 |<img width="450" alt="Untitled diagram-2026-02-11-173920" src="https://github.com/user-attachments/assets/adbbeee5-7544-46c0-a276-0a04aae3e303" />|
 
 ---
- 
