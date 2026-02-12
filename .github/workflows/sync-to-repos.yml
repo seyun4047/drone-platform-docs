@@ -66,7 +66,7 @@ jobs:
               http_options={'api_version': 'v1'}
           )
 
-          MODEL_ID = "gemini-2.5-flash-lite"
+          MODEL_ID = "gemini-2.5-flash"
 
           COMPONENTS = {
               "server": os.environ.get("CHANGED_SERVER") == "true",
@@ -166,7 +166,7 @@ jobs:
           echo -e "\n\n---\n" >> README.md
           cat components/platform/overview.md >> README.md
 
-          echo "해당 문서는 gemini-2.5-flash-lite 로 자동 번역되었습니다.<br>정확한 내용은 여기서 확인해주세요: [English Document]($BASE_URL/README.md)" > README.kr.md
+          echo "해당 문서는 gemini-2.5-flash 로 자동 번역되었습니다.<br>정확한 내용은 여기서 확인해주세요: [English Document]($BASE_URL/README.md)" > README.kr.md
           echo -e "\n---\n" >> README.kr.md
 
           if [ -f components/$COMP/$COMP.kr.md ]; then
