@@ -1,9 +1,9 @@
-name: Sync docs to component READMEs
+name: Sync docs to component READMEs with Gemini
 
 on:
   push:
     paths:
-      - components/**.md
+      - 'components/**.md'
   workflow_dispatch:
 
 jobs:
@@ -58,28 +58,82 @@ jobs:
 
       - name: Skip if not needed
         if: matrix.condition != 'true'
-        run: echo "Skipping ${{ matrix.repo }}" && exit 0
+        run: echo "No changes for ${{ matrix.component }}. Skipping." && exit 0
 
-      - name: Build README
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Gemini dependencies
+        run: pip install -U google-generativeai
+
+      - name: Translate changed docs via Gemini
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
+          python - <<EOF
+          import os
+          import google.generativeai as genai
+
+          genai.configure(api_key=os.environ['GEMINI_API_KEY'])
+          model = genai.GenerativeModel('gemini-1.5-flash')
+
+          def translate_file(src, dest):
+              if not os.path.exists(src): return
+              print(f"Translating {src} to {dest}...")
+              with open(src, 'r', encoding='utf-8') as f:
+                  content = f.read()
+              
+              prompt = f"Translate the following Markdown technical documentation into Korean. Keep all markdown structure, code blocks, and English technical terms intact. Translate only the descriptive text:\n\n{content}"
+              response = model.generate_content(prompt)
+              
+              with open(dest, 'w', encoding='utf-8') as f:
+                  f.write(response.text)
+
+          if "${{ needs.detect.outputs[matrix.component] }}" == "true":
+              translate_file(f"components/${{ matrix.component }}/${{ matrix.component }}.md", 
+                             f"components/${{ matrix.component }}/${{ matrix.component }}.kr.md")
+          
+          if "${{ needs.detect.outputs.overview }}" == "true":
+              translate_file("components/platform/overview.md", "components/platform/overview.kr.md")
+          EOF
+
+      - name: Build Final READMEs
+        run: |
+          # --- English README Build ---
           echo "" > README.md
           cat components/${{ matrix.component }}/${{ matrix.component }}.md >> README.md
-          echo "" >> README.md
+          echo -e "\n\n---\n" >> README.md
           cat components/platform/overview.md >> README.md
+
+          echo "" > README.kr.md
+          
+          if [ -f "components/${{ matrix.component }}/${{ matrix.component }}.kr.md" ]; then
+            cat components/${{ matrix.component }}/${{ matrix.component }}.kr.md >> README.kr.md
+          else
+            cat components/${{ matrix.component }}/${{ matrix.component }}.md >> README.kr.md
+          fi
+          
+          echo -e "\n\n---\n" >> README.kr.md
+          
+          if [ -f "components/platform/overview.kr.md" ]; then
+            cat components/platform/overview.kr.md >> README.kr.md
+          else
+            cat components/platform/overview.md >> README.kr.md
+          fi
 
       - name: Clone target repo
         run: |
           git clone https://x-access-token:${{ secrets.DOCS_PUSH_TOKEN }}@github.com/seyun4047/${{ matrix.repo }}.git target
 
-      - name: Copy README
+      - name: Sync to Target Repo
         run: |
           cp README.md target/README.md
-
-      - name: Commit and push
-        run: |
+          cp README.kr.md target/README.kr.md
           cd target
-          git config user.name "readme-bot"
+          git config user.name "gemini-bot"
           git config user.email "actions@github.com"
-          git add README.md
-          git commit -m "docs: sync README from drone-platform-docs" || echo "No changes"
+          git add README.md README.kr.md
+          git commit -m "docs: sync README & KR translation (Gemini Flash)" || echo "No changes to commit"
           git push
