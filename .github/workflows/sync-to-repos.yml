@@ -17,22 +17,16 @@ jobs:
       overview: ${{ steps.filter.outputs.overview }}
     steps:
       - uses: actions/checkout@v3
-
       - name: Detect changed paths
         id: filter
         uses: dorny/paths-filter@v3
         with:
           filters: |
-            server:
-              - 'components/server/server.md'
-            client:
-              - 'components/client/client.md'
-            monitoring:
-              - 'components/monitoring-server/monitoring-server.md'
-            trans:
-              - 'components/trans-tester/trans-tester.md'
-            overview:
-              - 'components/platform/overview.md'
+            server: ['components/server/server.md']
+            client: ['components/client/client.md']
+            monitoring: ['components/monitoring-server/monitoring-server.md']
+            trans: ['components/trans-tester/trans-tester.md']
+            overview: ['components/platform/overview.md']
 
   sync:
     needs: detect
@@ -63,10 +57,10 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.11'
 
       - name: Install Gemini dependencies
-        run: pip install -U google-generativeai
+        run: pip install -U google-genai
 
       - name: Translate changed docs via Gemini
         env:
@@ -74,23 +68,28 @@ jobs:
         run: |
           python - <<EOF
           import os
-          import google.generativeai as genai
+          from genai import Client
 
-          genai.configure(api_key=os.environ['GEMINI_API_KEY'])
-          model = genai.GenerativeModel('gemini-1.5-flash')
+          client = Client(api_key=os.environ['GEMINI_API_KEY'])
+          MODEL_ID = "gemini-1.5-flash"
 
           def translate_file(src, dest):
               if not os.path.exists(src): return
               print(f"Translating {src} to {dest}...")
+              
               with open(src, 'r', encoding='utf-8') as f:
                   content = f.read()
               
               prompt = f"Translate the following Markdown technical documentation into Korean. Keep all markdown structure, code blocks, and English technical terms intact. Translate only the descriptive text:\n\n{content}"
-              response = model.generate_content(prompt)
+              
+              response = client.models.generate_content(
+                  model=MODEL_ID,
+                  contents=prompt
+              )
               
               with open(dest, 'w', encoding='utf-8') as f:
                   f.write(response.text)
-
+                  
           if "${{ needs.detect.outputs[matrix.component] }}" == "true":
               translate_file(f"components/${{ matrix.component }}/${{ matrix.component }}.md", 
                              f"components/${{ matrix.component }}/${{ matrix.component }}.kr.md")
@@ -101,27 +100,17 @@ jobs:
 
       - name: Build Final READMEs
         run: |
-          # --- English README Build ---
+          # English
           echo "" > README.md
           cat components/${{ matrix.component }}/${{ matrix.component }}.md >> README.md
           echo -e "\n\n---\n" >> README.md
           cat components/platform/overview.md >> README.md
 
+          # Korean
           echo "" > README.kr.md
-          
-          if [ -f "components/${{ matrix.component }}/${{ matrix.component }}.kr.md" ]; then
-            cat components/${{ matrix.component }}/${{ matrix.component }}.kr.md >> README.kr.md
-          else
-            cat components/${{ matrix.component }}/${{ matrix.component }}.md >> README.kr.md
-          fi
-          
+          [ -f "components/${{ matrix.component }}/${{ matrix.component }}.kr.md" ] && cat "components/${{ matrix.component }}/${{ matrix.component }}.kr.md" >> README.kr.md || cat "components/${{ matrix.component }}/${{ matrix.component }}.md" >> README.kr.md
           echo -e "\n\n---\n" >> README.kr.md
-          
-          if [ -f "components/platform/overview.kr.md" ]; then
-            cat components/platform/overview.kr.md >> README.kr.md
-          else
-            cat components/platform/overview.md >> README.kr.md
-          fi
+          [ -f "components/platform/overview.kr.md" ] && cat "components/platform/overview.kr.md" >> README.kr.md || cat "components/platform/overview.md" >> README.kr.md
 
       - name: Clone target repo
         run: |
@@ -135,5 +124,5 @@ jobs:
           git config user.name "gemini-bot"
           git config user.email "actions@github.com"
           git add README.md README.kr.md
-          git commit -m "docs: sync README & KR translation (Gemini Flash)" || echo "No changes to commit"
+          git commit -m "docs: sync README & KR translation (Gemini 1.5 Flash)" || echo "No changes"
           git push
