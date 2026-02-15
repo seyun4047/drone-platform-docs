@@ -15,6 +15,7 @@ and operational logic for individual services.
 | Monitoring Server    | Monitoring-Server | Real-time drone health and connection monitoring service  | [Docs](https://github.com/seyun4047/drone-platform-docs/blob/main/components/monitoring-server/monitoring-server.md) |
 | Drone Data Tester    | Trans-Tester     | Test client for drone telemetry and data simulation       | [Docs](https://github.com/seyun4047/drone-platform-docs/blob/main/components/trans-tester/trans-tester.md) |
 | Drone Client         | Client     | Drone data collection, transmission, and analysis         | [Docs](https://github.com/seyun4047/drone-platform-docs/blob/main/components/client/client.md) |
+| Dashboard         | Dashboard     | Drone platform's front-end        | [Docs](https://github.com/seyun4047/drone-platform-docs/blob/main/components/dashboard/dashboard.md) |
 
 ---
 
