@@ -17,10 +17,6 @@ FLUSH PRIVILEGES;
 ```bash
 docker exec -it drone-platform-mysql mysql -u YOUR_MYSQL_USERNAME -p
 ```
-## 1. CREATE DRONE DB
-```bash
-CREATE DATABASE IF NOT EXISTS drone;
-```
 ---
 
 # DRONE DB SETUP
