@@ -28,6 +28,6 @@ pip install -r requirements.txt
 ## Usage
 Run the application:
 ```bash
-python3 main.py
+python3 tester.py
 ```
 ---

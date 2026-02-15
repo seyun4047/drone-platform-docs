@@ -17,8 +17,8 @@ jobs:
       client: ${{ steps.filter.outputs.client }}
       monitoring: ${{ steps.filter.outputs.monitoring }}
       trans: ${{ steps.filter.outputs.trans }}
+      dashboard: ${{ steps.filter.outputs.dashboard }}
       overview: ${{ steps.filter.outputs.overview }}
-
     steps:
       - uses: actions/checkout@v4
 
@@ -31,6 +31,7 @@ jobs:
             client: ['components/client/client.md']
             monitoring: ['components/monitoring-server/monitoring-server.md']
             trans: ['components/trans-tester/trans-tester.md']
+            dashboard: ['components/dashboard/dashboard.md']
             overview: ['components/platform/overview.md']
 
   translate:
@@ -57,6 +58,7 @@ jobs:
           CHANGED_CLIENT: ${{ needs.detect.outputs.client }}
           CHANGED_MONITORING: ${{ needs.detect.outputs.monitoring }}
           CHANGED_TRANS: ${{ needs.detect.outputs.trans }}
+          CHANGED_DASHBOARD: ${{ needs.detect.outputs.dashboard }}
           CHANGED_OVERVIEW: ${{ needs.detect.outputs.overview }}
         run: |
           python - <<EOF
@@ -75,6 +77,7 @@ jobs:
               "client": os.environ.get("CHANGED_CLIENT") == "true",
               "monitoring-server": os.environ.get("CHANGED_MONITORING") == "true",
               "trans-tester": os.environ.get("CHANGED_TRANS") == "true",
+              "trans-dashboard": os.environ.get("CHANGED_DASHBOARD") == "true",
           }
 
           overview_changed = os.environ.get("CHANGED_OVERVIEW") == "true"
@@ -148,7 +151,9 @@ jobs:
           - repo: drone-platform-trans-tester
             component: trans-tester
             output_key: trans
-
+          - repo: drone-platform-dashboard
+            component: dashboard
+            output_key: dashboard
     steps:
       - uses: actions/checkout@v4
         with:
