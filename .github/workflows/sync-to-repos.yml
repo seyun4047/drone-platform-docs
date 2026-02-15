@@ -77,7 +77,7 @@ jobs:
               "client": os.environ.get("CHANGED_CLIENT") == "true",
               "monitoring-server": os.environ.get("CHANGED_MONITORING") == "true",
               "trans-tester": os.environ.get("CHANGED_TRANS") == "true",
-              "trans-dashboard": os.environ.get("CHANGED_DASHBOARD") == "true",
+              "dashboard": os.environ.get("CHANGED_DASHBOARD") == "true",
           }
 
           overview_changed = os.environ.get("CHANGED_OVERVIEW") == "true"
