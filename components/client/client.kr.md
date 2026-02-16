@@ -1,26 +1,26 @@
-# 드론 데이터 전송 및 다중 ROI 감지 클라이언트
+# 드론 데이터 전송 & 다중 ROI 감지 클라이언트
 
 ---
-## 저장소 개요
-- 이 클라이언트 애플리케이션은 드론에서 원격 측정 데이터를 수집하여 중앙 서버로 실시간으로 전송합니다.
+## 리포지토리 개요
+- 이 클라이언트 애플리케이션은 드론으로부터 원격 측정 데이터를 수집하여 중앙 서버로 실시간 전송합니다.
 - 이 시스템은 드론의 비디오 피드와 화면상의 원격 측정 데이터를 지속적으로 모니터링할 수 있는 환경에서 작동하도록 설계되었습니다.
-- 일반적으로 원격 측정 정보는 드론 컨트롤러 디스플레이에서 직접 캡처되며, 이곳에서 속도 및 기타 비행 데이터가 표시됩니다.
+- 일반적으로, 원격 측정 정보는 드론 컨트롤러 디스플레이에서 직접 캡처되며, 이곳에 속도 및 기타 비행 데이터가 표시됩니다.
 
 ---
 
 ## 작동 방식
 
-### 설정 (SETUP)
+### SETUP
 | 1. 서버 연결 | 2. ROI 선택 | 3. 분석 |
 |:---:|:---:|:---:|
 |<img src="https://github.com/user-attachments/assets/e5336103-6f95-4023-8e5e-401f4d8cf3f1" width="200">|<img src="https://github.com/user-attachments/assets/548a50ed-01da-4236-8501-cd21056c22e1" width="200">|<img src="https://github.com/user-attachments/assets/c9b7026f-c56a-4f4b-a8da-818017d658ca" width="200">|
-|승인된 드론 시리얼과 장치 이름을 입력한 후 연결합니다.|원하는 정보를 모니터링할 화면 영역을 선택합니다.|데이터가 감지되면 처리되어 메인 서버로 전송됩니다.|
+|인증된 드론 시리얼과 장치 이름을 입력한 후 연결합니다.|원하는 정보를 모니터링하기 위해 화면에서 영역을 선택합니다.|데이터가 감지되면 처리되어 메인 서버로 전송됩니다.|
 
-### 데이터 전송 (SEND DATA)
+### SEND DATA
 | 사람 감지 | 이벤트 데이터 전송 |
 |:---:|:---:|
 |<img src="https://github.com/user-attachments/assets/2c66ff16-f5ff-43eb-b082-97bfa7bc7d7c" width="300">|<img width="300" alt="스크린샷 2026-02-08 22 53 30" src="https://github.com/user-attachments/assets/b4f43752-97c3-4c60-ae6d-424b73721697" />|
-|사람을 자동으로 감지합니다.|이벤트 데이터를 서버로 전송합니다.<br>(이 이미지는 클라이언트로부터 서버가 수신한 이벤트 데이터를 나타냅니다.)|
+|자동으로 사람을 감지합니다.|이벤트 데이터를 서버로 전송합니다.<br>(이 이미지는 클라이언트로부터 서버가 수신한 이벤트 데이터를 나타냅니다.)|
 
 | 원격 측정 데이터 전송 |
 |:---:|
@@ -30,7 +30,7 @@
 
 ---
 ## 설치
-필요한 의존성을 설치합니다:
+필요한 종속성을 설치합니다:
 ```bash
 pip install -r requirements.txt
 ```
@@ -42,14 +42,14 @@ python3 main.py
 ```
 ---
 ## 스택
-| Category         | Technology                      | Version      | Purpose                             |
+| Category | Technology | Version | 목적 |
 |------------------|---------------------------------|-------------|-------------------------------------|
-| Language         | Python                          | 3.x         | 코어 애플리케이션 로직              |
-| Numeric OCR      | Tesseract (pytesseract)         | 0.3.13      | 속도 및 원격 측정 숫자 추출         |
-| Human Detection | YOLOv8 (Ultralytics)            | 8.4.12      | 실시간 사람 감지                    |
-| Computer Vision  | OpenCV                          | 4.12.0.88   | 이미지 처리                         |
-| GUI              | PyQt5                           | 5.15.11     | 데스크톱 인터페이스                 |
-| Deep Learning    | PyTorch (torch, torchvision)    | 2.10.0 / 0.25.0 | 모델 추론 엔진                      |
+| Language | Python | 3.x | 핵심 애플리케이션 로직 |
+| Numeric OCR | Tesseract (pytesseract) | 0.3.13 | 속도 및 원격 측정 숫자 추출 |
+| Human Detection | YOLOv8 (Ultralytics) | 8.4.12 | 실시간 사람 감지 |
+| Computer Vision | OpenCV | 4.12.0.88 | 이미지 처리 |
+| GUI | PyQt5 | 5.15.11 | 데스크톱 인터페이스 |
+| Deep Learning | PyTorch (torch, torchvision) | 2.10.0 / 0.25.0 | 모델 추론 엔진 |
 
 ---
 ## 이벤트 처리
@@ -58,13 +58,13 @@ python3 main.py
 서버와 클라이언트 모두 이러한 이벤트를 실시간으로 모니터링할 수 있습니다.
 
 ---
-## 흐름 (FLOW)
+## 흐름
 | 전체 흐름 | AWS S3 업로드 흐름 |
 |:---:|:---:|
 |<img height="1000" alt="Untitled diagram-2026-02-08-201750" src="https://github.com/user-attachments/assets/2d25b82b-3ebd-41e1-b0af-b928de5fdcc8" />|<img height="1000" alt="Untitled diagram-2026-02-08-201847" src="https://github.com/user-attachments/assets/2217b0cb-2b20-4789-b53f-d8443c5c4e76" />|
 ---
 ## 주의사항
-이 시스템은 드론의 영상 정보를 실시간으로 모니터링할 수 있는 환경에서 작동해야 합니다.
-드론의 원격 측정 데이터는 일반적으로 카메라 드론의 리모컨 화면에서 얻어집니다.
+이 시스템은 드론의 비디오 정보가 실시간으로 모니터링될 수 있는 환경에서 작동해야 합니다.
+드론 원격 측정 데이터는 일반적으로 카메라 드론의 리모컨 화면에서 얻어집니다.
 화면에는 속도 및 기타 비행 정보가 표시되어야 합니다.
 좌표 감지를 위해서는 간단한 GPS 모듈이 부착되어야 하며, 해당 데이터가 화면에 표시되어 실시간으로 감지될 수 있어야 합니다.
