@@ -20,6 +20,8 @@ Maintains the list of registered and approved drones.
 Issues and validates access tokens for authenticated drones.
 - Drone Heartbeat Tracking (Redis)<br>
 Tracks real-time connectivity status using time-indexed heartbeat data.
+- Amazon S3 STS Temporary Credential(AWS)<br>
+Generates STS temporary credentials to enable event images to be uploaded to S3.
 
 ### 2. Telemetry & Event Processing
 The server receives and processes telemetry and event data transmitted from [drone-client](https://github.com/seyun4047/drone-platform-client), including:
@@ -42,7 +44,6 @@ Upon successful login, the server issues a JWT token which clients must include 
 Secured Dashboard Endpoints<br>
 - Fetching alive drones from Redis heartbeat data.
 - Retrieving latest telemetry and event data for drones.
-
 ---
 ## Usage
 ### Local Build
@@ -110,4 +111,7 @@ curl -X POST http://<your_url>/dashboard/login \
 ---
 
 ## Dashboard(Front-End) Communication
-<img height="900" alt="AWS Upload Presigned URL-2026-02-13-144904" src="https://github.com/user-attachments/assets/4e956658-5ef2-4c1d-972d-ea669aa09b67" />
+
+<div align="center">
+<img height="600" alt="AWS Upload Presigned URL-2026-02-13-144904" src="https://github.com/user-attachments/assets/4e956658-5ef2-4c1d-972d-ea669aa09b67" />
+</div>
