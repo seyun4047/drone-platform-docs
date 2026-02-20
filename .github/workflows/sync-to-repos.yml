@@ -1,206 +1,206 @@
-name: Sync docs to component READMEs And Translate
+# name: Sync docs to component READMEs And Translate
 
-permissions:
-  contents: write
+# permissions:
+#   contents: write
 
-on:
-  push:
-    paths:
-      - 'components/**/*.md'
-  workflow_dispatch:
+# on:
+#   push:
+#     paths:
+#       - 'components/**/*.md'
+#   workflow_dispatch:
 
-jobs:
-  detect:
-    runs-on: ubuntu-latest
-    outputs:
-      server: ${{ steps.filter.outputs.server }}
-      client: ${{ steps.filter.outputs.client }}
-      monitoring: ${{ steps.filter.outputs.monitoring }}
-      trans: ${{ steps.filter.outputs.trans }}
-      dashboard: ${{ steps.filter.outputs.dashboard }}
-      overview: ${{ steps.filter.outputs.overview }}
-    steps:
-      - uses: actions/checkout@v4
+# jobs:
+#   detect:
+#     runs-on: ubuntu-latest
+#     outputs:
+#       server: ${{ steps.filter.outputs.server }}
+#       client: ${{ steps.filter.outputs.client }}
+#       monitoring: ${{ steps.filter.outputs.monitoring }}
+#       trans: ${{ steps.filter.outputs.trans }}
+#       dashboard: ${{ steps.filter.outputs.dashboard }}
+#       overview: ${{ steps.filter.outputs.overview }}
+#     steps:
+#       - uses: actions/checkout@v4
 
-      - name: Detect changed paths
-        id: filter
-        uses: dorny/paths-filter@v3
-        with:
-          filters: |
-            server: ['components/server/server.md']
-            client: ['components/client/client.md']
-            monitoring: ['components/monitoring-server/monitoring-server.md']
-            trans: ['components/trans-tester/trans-tester.md']
-            dashboard: ['components/dashboard/dashboard.md']
-            overview: ['components/platform/overview.md']
+#       - name: Detect changed paths
+#         id: filter
+#         uses: dorny/paths-filter@v3
+#         with:
+#           filters: |
+#             server: ['components/server/server.md']
+#             client: ['components/client/client.md']
+#             monitoring: ['components/monitoring-server/monitoring-server.md']
+#             trans: ['components/trans-tester/trans-tester.md']
+#             dashboard: ['components/dashboard/dashboard.md']
+#             overview: ['components/platform/overview.md']
 
-  translate:
-    needs: detect
-    runs-on: ubuntu-latest
-    outputs:
-      commit_sha: ${{ steps.push.outputs.commit_sha }}
+#   translate:
+#     needs: detect
+#     runs-on: ubuntu-latest
+#     outputs:
+#       commit_sha: ${{ steps.push.outputs.commit_sha }}
 
-    steps:
-      - uses: actions/checkout@v4
+#     steps:
+#       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+#       - name: Set up Python
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: '3.11'
 
-      - name: Install Gemini SDK
-        run: pip install -U google-genai
+#       - name: Install Gemini SDK
+#         run: pip install -U google-genai
 
-      - name: Translate changed components
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          CHANGED_SERVER: ${{ needs.detect.outputs.server }}
-          CHANGED_CLIENT: ${{ needs.detect.outputs.client }}
-          CHANGED_MONITORING: ${{ needs.detect.outputs.monitoring }}
-          CHANGED_TRANS: ${{ needs.detect.outputs.trans }}
-          CHANGED_DASHBOARD: ${{ needs.detect.outputs.dashboard }}
-          CHANGED_OVERVIEW: ${{ needs.detect.outputs.overview }}
-        run: |
-          python - <<EOF
-          import os
-          from google import genai
+#       - name: Translate changed components
+#         env:
+#           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+#           CHANGED_SERVER: ${{ needs.detect.outputs.server }}
+#           CHANGED_CLIENT: ${{ needs.detect.outputs.client }}
+#           CHANGED_MONITORING: ${{ needs.detect.outputs.monitoring }}
+#           CHANGED_TRANS: ${{ needs.detect.outputs.trans }}
+#           CHANGED_DASHBOARD: ${{ needs.detect.outputs.dashboard }}
+#           CHANGED_OVERVIEW: ${{ needs.detect.outputs.overview }}
+#         run: |
+#           python - <<EOF
+#           import os
+#           from google import genai
 
-          client = genai.Client(
-              api_key=os.environ['GEMINI_API_KEY'],
-              http_options={'api_version': 'v1'}
-          )
+#           client = genai.Client(
+#               api_key=os.environ['GEMINI_API_KEY'],
+#               http_options={'api_version': 'v1'}
+#           )
 
-          MODEL_ID = "gemini-2.5-flash"
+#           MODEL_ID = "gemini-2.5-flash"
 
-          COMPONENTS = {
-              "server": os.environ.get("CHANGED_SERVER") == "true",
-              "client": os.environ.get("CHANGED_CLIENT") == "true",
-              "monitoring-server": os.environ.get("CHANGED_MONITORING") == "true",
-              "trans-tester": os.environ.get("CHANGED_TRANS") == "true",
-              "dashboard": os.environ.get("CHANGED_DASHBOARD") == "true",
-          }
+#           COMPONENTS = {
+#               "server": os.environ.get("CHANGED_SERVER") == "true",
+#               "client": os.environ.get("CHANGED_CLIENT") == "true",
+#               "monitoring-server": os.environ.get("CHANGED_MONITORING") == "true",
+#               "trans-tester": os.environ.get("CHANGED_TRANS") == "true",
+#               "dashboard": os.environ.get("CHANGED_DASHBOARD") == "true",
+#           }
 
-          overview_changed = os.environ.get("CHANGED_OVERVIEW") == "true"
+#           overview_changed = os.environ.get("CHANGED_OVERVIEW") == "true"
 
-          def translate_file(en_path, kr_path):
-              if not os.path.exists(en_path):
-                  return
+#           def translate_file(en_path, kr_path):
+#               if not os.path.exists(en_path):
+#                   return
 
-              with open(en_path, "r", encoding="utf-8") as f:
-                  en_content = f.read()
+#               with open(en_path, "r", encoding="utf-8") as f:
+#                   en_content = f.read()
 
-              prompt = f"""
-              Translate the following Markdown documentation into Korean.
-              Keep structure, links, and code blocks intact.
-              Translate only descriptive text.
-              {en_content}
-              """
+#               prompt = f"""
+#               Translate the following Markdown documentation into Korean.
+#               Keep structure, links, and code blocks intact.
+#               Translate only descriptive text.
+#               {en_content}
+#               """
 
-              try:
-                  response = client.models.generate_content(
-                      model=MODEL_ID,
-                      contents=prompt
-                  )
-                  kr_content = response.text if response.text else en_content
-              except Exception:
-                  kr_content = en_content
+#               try:
+#                   response = client.models.generate_content(
+#                       model=MODEL_ID,
+#                       contents=prompt
+#                   )
+#                   kr_content = response.text if response.text else en_content
+#               except Exception:
+#                   kr_content = en_content
 
-              with open(kr_path, "w", encoding="utf-8") as f:
-                  f.write(kr_content)
+#               with open(kr_path, "w", encoding="utf-8") as f:
+#                   f.write(kr_content)
 
-          for component, changed in COMPONENTS.items():
-              if changed or overview_changed:
-                  translate_file(
-                      f"components/{component}/{component}.md",
-                      f"components/{component}/{component}.kr.md"
-                  )
+#           for component, changed in COMPONENTS.items():
+#               if changed or overview_changed:
+#                   translate_file(
+#                       f"components/{component}/{component}.md",
+#                       f"components/{component}/{component}.kr.md"
+#                   )
 
-          if overview_changed:
-              translate_file(
-                  "components/platform/overview.md",
-                  "components/platform/overview.kr.md"
-              )
-          EOF
+#           if overview_changed:
+#               translate_file(
+#                   "components/platform/overview.md",
+#                   "components/platform/overview.kr.md"
+#               )
+#           EOF
 
-      - name: Commit translations
-        id: push
-        run: |
-          git config user.name "gemini-bot"
-          git config user.email "actions@github.com"
-          git add components/**/*.md
-          git commit -m "docs: auto translate" || echo "No changes"
-          git push
-          echo "commit_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+#       - name: Commit translations
+#         id: push
+#         run: |
+#           git config user.name "gemini-bot"
+#           git config user.email "actions@github.com"
+#           git add components/**/*.md
+#           git commit -m "docs: auto translate" || echo "No changes"
+#           git push
+#           echo "commit_sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
 
-  sync:
-    needs: [detect, translate]
-    runs-on: ubuntu-latest
+#   sync:
+#     needs: [detect, translate]
+#     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        include:
-          - repo: drone-platform-server
-            component: server
-            output_key: server
-          - repo: drone-platform-client
-            component: client
-            output_key: client
-          - repo: drone-platform-monitoring-server
-            component: monitoring-server
-            output_key: monitoring
-          - repo: drone-platform-trans-tester
-            component: trans-tester
-            output_key: trans
-          - repo: drone-platform-dashboard
-            component: dashboard
-            output_key: dashboard
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.translate.outputs.commit_sha }}
+#     strategy:
+#       matrix:
+#         include:
+#           - repo: drone-platform-server
+#             component: server
+#             output_key: server
+#           - repo: drone-platform-client
+#             component: client
+#             output_key: client
+#           - repo: drone-platform-monitoring-server
+#             component: monitoring-server
+#             output_key: monitoring
+#           - repo: drone-platform-trans-tester
+#             component: trans-tester
+#             output_key: trans
+#           - repo: drone-platform-dashboard
+#             component: dashboard
+#             output_key: dashboard
+#     steps:
+#       - uses: actions/checkout@v4
+#         with:
+#           ref: ${{ needs.translate.outputs.commit_sha }}
 
-      - name: Skip if not needed
-        if: needs.detect.outputs[matrix.output_key] != 'true' && needs.detect.outputs.overview != 'true'
-        run: |
-          echo "No changes. Skipping."
-          exit 0
+#       - name: Skip if not needed
+#         if: needs.detect.outputs[matrix.output_key] != 'true' && needs.detect.outputs.overview != 'true'
+#         run: |
+#           echo "No changes. Skipping."
+#           exit 0
 
-      - name: Build Final READMEs
-        run: |
-          COMP=${{ matrix.component }}
-          BASE_URL="https://github.com/seyun4047/${{ matrix.repo }}/blob/main"
+#       - name: Build Final READMEs
+#         run: |
+#           COMP=${{ matrix.component }}
+#           BASE_URL="https://github.com/seyun4047/${{ matrix.repo }}/blob/main"
 
-          echo "Korean version: [한국어 문서]($BASE_URL/README.kr.md)" > /tmp/README.md
-          echo -e "\n---\n" >> /tmp/README.md
-          if [ -f components/$COMP/$COMP.md ]; then
-            cat components/$COMP/$COMP.md >> /tmp/README.md
-          fi
-          echo -e "\n\n---\n" >> /tmp/README.md
-          if [ -f components/platform/overview.md ]; then
-            cat components/platform/overview.md >> /tmp/README.md
-          fi
+#           echo "Korean version: [한국어 문서]($BASE_URL/README.kr.md)" > /tmp/README.md
+#           echo -e "\n---\n" >> /tmp/README.md
+#           if [ -f components/$COMP/$COMP.md ]; then
+#             cat components/$COMP/$COMP.md >> /tmp/README.md
+#           fi
+#           echo -e "\n\n---\n" >> /tmp/README.md
+#           if [ -f components/platform/overview.md ]; then
+#             cat components/platform/overview.md >> /tmp/README.md
+#           fi
 
-          echo "해당 문서는 gemini-2.5-flash 로 자동 번역되었습니다.<br>정확한 내용은 여기서 확인해주세요: [English Document]($BASE_URL/README.md)" > /tmp/README.kr.md
-          echo -e "\n---\n" >> /tmp/README.kr.md
-          if [ -f components/$COMP/$COMP.kr.md ]; then
-            cat components/$COMP/$COMP.kr.md >> /tmp/README.kr.md
-          fi
-          echo -e "\n\n---\n" >> /tmp/README.kr.md
-          if [ -f components/platform/overview.kr.md ]; then
-            cat components/platform/overview.kr.md >> /tmp/README.kr.md
-          fi
+#           echo "해당 문서는 gemini-2.5-flash 로 자동 번역되었습니다.<br>정확한 내용은 여기서 확인해주세요: [English Document]($BASE_URL/README.md)" > /tmp/README.kr.md
+#           echo -e "\n---\n" >> /tmp/README.kr.md
+#           if [ -f components/$COMP/$COMP.kr.md ]; then
+#             cat components/$COMP/$COMP.kr.md >> /tmp/README.kr.md
+#           fi
+#           echo -e "\n\n---\n" >> /tmp/README.kr.md
+#           if [ -f components/platform/overview.kr.md ]; then
+#             cat components/platform/overview.kr.md >> /tmp/README.kr.md
+#           fi
 
-      - name: Clone target repo
-        run: |
-          git clone https://x-access-token:${{ secrets.DOCS_PUSH_TOKEN }}@github.com/seyun4047/${{ matrix.repo }}.git target
+#       - name: Clone target repo
+#         run: |
+#           git clone https://x-access-token:${{ secrets.DOCS_PUSH_TOKEN }}@github.com/seyun4047/${{ matrix.repo }}.git target
 
-      - name: Sync
-        run: |
-          cp /tmp/README.md target/README.md
-          cp /tmp/README.kr.md target/README.kr.md
-          cd target
-          git config user.name "gemini-bot"
-          git config user.email "actions@github.com"
-          git add README.md README.kr.md
-          git commit -m "docs: sync README & KR translation" || echo "No changes"
-          git push
+#       - name: Sync
+#         run: |
+#           cp /tmp/README.md target/README.md
+#           cp /tmp/README.kr.md target/README.kr.md
+#           cd target
+#           git config user.name "gemini-bot"
+#           git config user.email "actions@github.com"
+#           git add README.md README.kr.md
+#           git commit -m "docs: sync README & KR translation" || echo "No changes"
+#           git push
