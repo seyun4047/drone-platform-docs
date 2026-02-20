@@ -109,7 +109,10 @@ curl -X POST http://<your_url>/dashboard/login \
 ### MYSQL DB USAGE GUIDE
 >  If you want to know MySQL usage guide, check it out here: [DB GUIDE](https://github.com/seyun4047/drone-platform-docs/blob/main/components/server/DB_GUIDE.md)
 ---
-
+## AMAZON S3 GUIDE
+### S3 & IAM SETUP GUIDE
+> If you want to know S3 guide, check it out here: [S3 GUIDE](https://github.com/seyun4047/drone-platform-docs/blob/main/components/server/S3_GUIDE.md)
+---
 ## Dashboard(Front-End) Communication
 
 <div align="center">
