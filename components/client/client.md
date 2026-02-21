@@ -61,7 +61,7 @@ Both the server and the client can monitor these events in real time.
 ## FLOW
 | OVERALL FLOW | AWS S3 UPLOAD FLOW |
 |:---:|:---:|
-|<img height="1000" alt="overall flow" src="https://github.com/user-attachments/assets/187f25db-d82c-415c-9dc3-6aa01c0a374a" />|<img height="1000" alt="aws s3 upload flow" src="https://github.com/user-attachments/assets/0597c7c9-e2e1-4be7-ae5c-de554b0f88ff" />|
+|<img height="1000" alt="Overall flow" src="https://github.com/user-attachments/assets/8e1de094-ba4e-4340-bc16-c5660f0cc688" />|<img height="1000" alt="aws s3 upload flow" src="https://github.com/user-attachments/assets/0597c7c9-e2e1-4be7-ae5c-de554b0f88ff" />|
 ---
 ## Caution
 The system must operate in an environment where the drone’s video information can be monitored in real time.
